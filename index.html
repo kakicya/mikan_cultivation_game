@@ -279,7 +279,7 @@ tbody tr:last-child td{border-bottom:0}
 const CFG={
   runYears:50, startMoney:180000, familyHours:200, hireMax:70, wage:1200,
   rows:["A","B","C","D"], cols:6, unlockedAtStart:6,
-  sapling:1500, land:12000, fellCost:800, fellHours:1.5,
+  sapling:1500, land:40000, fellCost:800, fellHours:1.5,
   fixedMature:1200, fixedYoung:400, commission:0.12,
   loanUnit:50000, loanMax:600000, loanRate:0.03,
   firstBearing:7, peakAge:20, lastAge:56, peakKg:60, oldKg:40, firstKg:8,
@@ -537,9 +537,9 @@ function advanceYear(){
 
   if(!state.over&&state.year>CFG.runYears&&!state.verdict){
     const c=state.cum;
-    const tiers=[[10000000,"秀","産地を代表する園地","累計収支"+yen(c)+"。摘果と防除を欠かさず、樹を若く保った50年でした。"],
-                 [7000000,"優","安定した経営","累計収支"+yen(c)+"。本数と管理水準の釣り合いが取れていました。"],
-                 [3500000,"良","堅実な経営","累計収支"+yen(c)+"。開墾と改植の判断を早めると、もう一段伸びます。"],
+    const tiers=[[7500000,"秀","産地を代表する園地","累計収支"+yen(c)+"。摘果と防除を欠かさず、樹を若く保った50年でした。"],
+                 [5000000,"優","安定した経営","累計収支"+yen(c)+"。本数と管理水準の釣り合いが取れていました。"],
+                 [2800000,"良","堅実な経営","累計収支"+yen(c)+"。開墾と改植の判断を早めると、もう一段伸びます。"],
                  [0,"並","収支は黒字","累計収支"+yen(c)+"。秀品率を上げると、同じ収量でも売上がまとめて動きます。"]];
     const t=tiers.find(x=>c>=x[0])||[0,"加工","赤字決算","累計収支"+yen(c)+"。資材費と雇用賃金が売上を上回りました。"];
     state.verdict={rank:t[1],title:t[2],body:t[3],done:true};
@@ -672,7 +672,8 @@ function renderPanel(){
   let sub="",html="";
   if(!pl.unlocked){
     $("p-sub").textContent="未開墾";
-    el.innerHTML='<p class="quiet">まだ開墾していない区画です。開墾すると苗木を植えられます。</p>'
+    el.innerHTML='<p class="quiet">まだ開墾していない区画です。抜根と整地、石積みと道付けに'
+      +yen(CFG.land)+'かかります。傾斜地の造成費が、この経営でいちばん重い先行投資です。</p>'
       +'<button class="btn" data-act="unlock" style="margin-top:10px"'+(state.money<CFG.land?" disabled":"")
       +'>この区画を開墾する（'+yen(CFG.land)+'）</button>';
     return;
