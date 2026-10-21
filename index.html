@@ -211,7 +211,7 @@ tbody tr:last-child td{border-bottom:0}
       <div class="stat"><dt>資金</dt><dd id="s-money">¥250,000</dd></div>
       <div class="stat"><dt>借入金</dt><dd id="s-loan">¥0</dd></div>
       <div class="stat"><dt>累計収支</dt><dd id="s-cum">¥0</dd></div>
-      <div class="stat"><dt>自家労力</dt><dd id="s-labor">0<small>/200h</small></dd>
+      <div class="stat"><dt>労力</dt><dd id="s-labor">0<small>/270h</small></dd>
         <div class="gauge"><i id="s-gauge" style="width:0%"></i></div></div>
       <div class="stat"><dt>結果樹</dt><dd id="s-trees">3<small>本 / 3本</small></dd></div>
     </dl>
@@ -277,7 +277,7 @@ tbody tr:last-child td{border-bottom:0}
 
 /* ============ 設定 ============ */
 const CFG={
-  runYears:50, startMoney:180000, familyHours:200, wage:1200,
+  runYears:50, startMoney:180000, familyHours:200, hireMax:70, wage:1200,
   rows:["A","B","C","D"], cols:6, unlockedAtStart:6,
   sapling:1500, land:12000, fellCost:800, fellHours:1.5,
   fixedMature:1200, fixedYoung:400, commission:0.12,
@@ -438,20 +438,35 @@ function advanceYear(){
   const mix={shu:0,yu:0,ryo:0,kako:0}, perPlot=[];
   let bugNone=0,bugStd=0;
 
+  const crop=[];
+  let fixedHours=state.extraHours||0, harvestNeed=0;
   state.plots.forEach(pl=>{
     if(!pl.tree) return;
     const pk=planOf(pl);
     const h=harvest(pl.tree,pk,w,bug);
     if(bug&&h.bearing){ if(pk.pest==="none") bugNone++; else if(pk.pest==="std") bugStd++; }
-    hours+=plotHours(pl.tree,pk,h.yieldKg);
+    fixedHours+=plotHours(pl.tree,pk,0);
+    harvestNeed+=(h.yieldKg||0)/CFG.peakKg*CFG.harvestHours;
     material+=plotMaterial(pl.tree,pk);
-    if(h.bearing){
-      totalKg+=h.yieldKg; brixW+=h.brix*h.yieldKg;
-      GRADES.forEach(g=>{mix[g.k]+=h.yieldKg*h.mix[g.k];});
-    }
-    perPlot.push({id:pl.id,age:pl.tree.age,kg:h.yieldKg,brix:h.bearing?h.brix:0,
-      shu:h.bearing?h.mix.shu:0});
+    crop.push({pl,h});
   });
+  /* 雇える人手には限りがある。収穫が回りきらない分は樹上に残って落果する */
+  const cap=CFG.familyHours+CFG.hireMax;
+  const avail=Math.max(0,cap-fixedHours);
+  const ratio=harvestNeed>avail?avail/harvestNeed:1;
+  let lostKg=0;
+  crop.forEach(({pl,h})=>{
+    if(h.bearing){
+      const got=h.yieldKg*ratio;
+      lostKg+=h.yieldKg-got;
+      totalKg+=got; brixW+=h.brix*got;
+      GRADES.forEach(g=>{mix[g.k]+=got*h.mix[g.k];});
+      perPlot.push({id:pl.id,age:pl.tree.age,kg:got,brix:h.brix,shu:h.mix.shu});
+    }else{
+      perPlot.push({id:pl.id,age:pl.tree.age,kg:0,brix:0,shu:0});
+    }
+  });
+  hours=fixedHours+harvestNeed*ratio;
 
   /* 樹勢・樹齢の更新 */
   let carryWarn=0,vigorWarn=0;
@@ -479,13 +494,15 @@ function advanceYear(){
     revenue+=amt; return {k:g.k,label:g.label,css:g.css,kg:q,unit,amt};
   });
   const commission=revenue*CFG.commission;
-  const hired=Math.max(0,hours-CFG.familyHours), wages=hired*CFG.wage;
+  const hired=Math.min(CFG.hireMax,Math.max(0,hours-CFG.familyHours)), wages=hired*CFG.wage;
   const interest=state.loan*CFG.loanRate;
   const invest=state.invest||0;
   const operating=revenue-commission-material-wages-interest;
   const balance=operating-invest;
   state.money+=operating; state.cum+=operating;
 
+  if(lostKg>0.5) notices.push({t:"bad",msg:"人手が足りず <b>"+kg(lostKg)
+    +"kg</b> を採りきれませんでした。樹上に残した果実は落果します。"});
   if(bug){
     if(bugNone) notices.push({t:"bad",msg:"<b>カメムシが大量に飛来しました。</b>無防除の<b>"+bugNone
       +"本</b>は吸汁による落果と果皮の斑点で壊滅的な被害を受けました。"});
@@ -512,7 +529,7 @@ function advanceYear(){
   state.records.push({year:state.year,weather:w.label,kg:totalKg,brix,
     shuRate:totalKg?mix.shu/totalKg:0,unit:totalKg?revenue/totalKg:0,
     revenue,balance,cum:state.cum,market});
-  state.last={w,bug,lines,totalKg,brix,revenue,commission,material,wages,interest,invest,
+  state.last={w,bug,lostKg,lines,totalKg,brix,revenue,commission,material,wages,interest,invest,
     balance,hours,hired,market,perPlot,notices,year:state.year,
     shuRate:totalKg?mix.shu/totalKg:0};
 
@@ -622,9 +639,11 @@ function estimate(){
     hours+=plotHours(pl.tree,pk,h.yieldKg);
     material+=plotMaterial(pl.tree,pk);
   });
-  const hired=Math.max(0,hours-CFG.familyHours),wages=hired*CFG.wage;
+  const cap=CFG.familyHours+CFG.hireMax;
+  const hired=Math.min(CFG.hireMax,Math.max(0,hours-CFG.familyHours)),wages=hired*CFG.wage;
   const interest=state.loan*CFG.loanRate,invest=state.invest||0;
-  return {hours,hired,wages,material,interest,invest,kgEst,bearing,planted,
+  return {hours,hired,wages,material,interest,invest,kgEst,bearing,planted,cap,
+    short:Math.max(0,hours-cap),
     out:material+wages+interest+invest};
 }
 function renderHeader(){
@@ -635,8 +654,9 @@ function renderHeader(){
   $("s-loan").textContent=yen(state.loan);
   $("s-cum").textContent=yen(state.cum);
   $("s-cum").className=state.cum<0?"neg":"";
-  $("s-labor").innerHTML=e.hours.toFixed(0)+'<small>/'+CFG.familyHours.toLocaleString("ja-JP")+'h</small>';
-  const g=$("s-gauge"),r=e.hours/CFG.familyHours;
+  $("s-labor").innerHTML=e.hours.toFixed(0)+'<small>/'+e.cap.toLocaleString("ja-JP")+'h</small>';
+  $("s-labor").className=e.short>0?"neg":"";
+  const g=$("s-gauge"),r=e.hours/e.cap;
   g.style.width=Math.min(100,r*100).toFixed(0)+"%";
   g.className=r>1?"over":"";
   $("s-trees").innerHTML=e.bearing+'<small>本 / '+e.planted+'本</small>';
@@ -730,14 +750,21 @@ function renderEstimate(){
   const e=estimate(),el=$("estimate");
   $("e-sub").textContent=state.year+"年目・平年想定";
   el.innerHTML=
-    '<dl class="led"><dt>作業時間</dt><dd>'+e.hours.toFixed(0)+' h</dd></dl>'
-    +'<dl class="led"><dt>うち雇用（'+yen(CFG.wage)+'/h）</dt><dd>'+e.hired.toFixed(0)+' h</dd></dl>'
+    '<dl class="led"><dt>作業時間</dt><dd class="'+(e.short>0?"neg":"")+'">'+e.hours.toFixed(0)
+      +' / '+e.cap+' h</dd></dl>'
+    +'<dl class="led"><dt>自家労力</dt><dd>'+Math.min(e.hours,CFG.familyHours).toFixed(0)
+      +' / '+CFG.familyHours+' h</dd></dl>'
+    +'<dl class="led"><dt>雇用（'+yen(CFG.wage)+'/h・上限'+CFG.hireMax+'h）</dt><dd>'
+      +e.hired.toFixed(0)+' / '+CFG.hireMax+' h</dd></dl>'
     +'<dl class="led"><dt>雇用賃金</dt><dd>'+yen(e.wages)+'</dd></dl>'
     +'<dl class="led"><dt>肥料・農薬・資材</dt><dd>'+yen(e.material)+'</dd></dl>'
     +(e.interest?'<dl class="led"><dt>借入利息</dt><dd>'+yen(e.interest)+'</dd></dl>':'')
     +(e.invest?'<dl class="led"><dt>開墾・植え付け（支払済）</dt><dd>'+yen(e.invest)+'</dd></dl>':'')
     +'<dl class="led total"><dt>支出見込み</dt><dd>'+yen(e.out)+'</dd></dl>'
-    +'<dl class="led"><dt>収穫する木</dt><dd>'+e.bearing+' 本・'+kg(e.kgEst)+' kg</dd></dl>';
+    +'<dl class="led"><dt>収穫する木</dt><dd>'+e.bearing+' 本・'+kg(e.kgEst)+' kg</dd></dl>'
+    +(e.short>0?'<div class="notice bad" style="margin-top:9px">人手が <b>'+e.short.toFixed(0)
+      +'h</b> 足りません。このままでは収穫が回りきらず、採り残しが出ます。'
+      +'管理を落とすか、本数を減らしてください。</div>':'');
   const btn=$("advance");
   btn.disabled=!!state.over;
   btn.textContent=state.over?"経営終了":state.year+"年目を終える";
@@ -781,6 +808,7 @@ function renderReport(){
     +'<div class="kpi"><dt>秀品率</dt><dd>'+(r.totalKg?pct(r.shuRate):"—")+'<small>%</small></dd></div>'
     +'<div class="kpi"><dt>平均単価</dt><dd>'+(r.totalKg?Math.round(r.revenue/r.totalKg):"—")+'<small>円/kg</small></dd></div>'
     +'<div class="kpi"><dt>作業時間</dt><dd>'+r.hours.toFixed(0)+'<small>h（雇用'+r.hired.toFixed(0)+'h）</small></dd></div>'
+    +(r.lostKg>0.5?'<div class="kpi"><dt>採り残し</dt><dd class="neg">'+kg(r.lostKg)+'<small>kg</small></dd></div>':'')
     +'</dl>';
   if(r.totalKg>0){
     h+='<h3 style="font-size:.86rem;margin-bottom:2px">等級構成</h3>'+gradeBar(r.lines,r.totalKg)
