@@ -1,0 +1,905 @@
+<title>みかん園経営</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: sticky ledger header; terraced field grid left, work-plan column right; report and 60-year records stacked below. */
+:root{
+  --bg:#eceee9; --surface:#f7f8f5; --surface-2:#f0f2ed; --sunk:#e3e7e0;
+  --ink:#19211f; --ink-2:#4d5a56; --ink-3:#7d8a85;
+  --line:#d3dacf; --line-strong:#b9c2b6;
+  --mikan:#d9640c; --mikan-soft:#f6e6d5; --leaf:#2f6b43; --leaf-soft:#e2ece2;
+  --good:#1f7a4d; --warn:#9a6a05; --bad:#a53524;
+  --g-shu:#78350a; --g-yu:#ad5008; --g-ryo:#d2731c; --g-kako:#e09a55;
+  --s-rev:#2a78d6; --s-bal:#eb6834;
+  --soil:#ded5c6; --soil-2:#d2c7b4; --wall:#c9c3b4;
+  --display:"Shippori Mincho B1",'Hiragino Mincho ProN',serif;
+  --body:"Zen Kaku Gothic New",'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#1a2320; --surface-2:#1f2a26; --sunk:#141c1a;
+  --ink:#e6ece7; --ink-2:#a9b7b1; --ink-3:#7d8c86;
+  --line:#2b3733; --line-strong:#3b4a45;
+  --mikan:#f08a2a; --mikan-soft:#33241a; --leaf:#5aa876; --leaf-soft:#1d2b23;
+  --good:#52b681; --warn:#d9a62e; --bad:#e2766a;
+  --g-shu:#b05410; --g-yu:#dc7520; --g-ryo:#f2a45a; --g-kako:#fbd3a6;
+  --s-rev:#3987e5; --s-bal:#d95926;
+  --soil:#2a2620; --soil-2:#332d25; --wall:#3a352c;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#1a2320; --surface-2:#1f2a26; --sunk:#141c1a;
+  --ink:#e6ece7; --ink-2:#a9b7b1; --ink-3:#7d8c86;
+  --line:#2b3733; --line-strong:#3b4a45;
+  --mikan:#f08a2a; --mikan-soft:#33241a; --leaf:#5aa876; --leaf-soft:#1d2b23;
+  --good:#52b681; --warn:#d9a62e; --bad:#e2766a;
+  --g-shu:#b05410; --g-yu:#dc7520; --g-ryo:#f2a45a; --g-kako:#fbd3a6;
+  --s-rev:#3987e5; --s-bal:#d95926;
+  --soil:#2a2620; --soil-2:#332d25; --wall:#3a352c;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);margin:0;line-height:1.6;
+  -webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--surface)}
+.num{font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:var(--display);font-weight:700;text-wrap:balance;margin:0;line-height:1.3}
+button{font-family:inherit;font-size:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--mikan);outline-offset:2px}
+
+/* ---- header ---- */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--surface);
+  border-bottom:1px solid var(--line-strong)}
+.hwrap{max-width:1180px;margin:0 auto;padding-block:10px 12px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.brand{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
+.brand h1{font-size:1.32rem;letter-spacing:.02em}
+.brand .eyebrow{font-size:.72rem;letter-spacing:.14em;color:var(--ink-3);text-transform:none}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:1px;margin-top:10px;
+  background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.stat{background:var(--surface-2);padding:7px 10px;min-width:0}
+.stat dt{font-size:.68rem;letter-spacing:.08em;color:var(--ink-3);margin:0}
+.stat dd{margin:1px 0 0;font-family:var(--display);font-size:1.02rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat dd small{font-family:var(--body);font-size:.68rem;color:var(--ink-3);font-weight:400;margin-left:2px}
+.neg{color:var(--bad)}
+.gauge{height:4px;background:var(--sunk);border-radius:2px;margin-top:5px;overflow:hidden}
+.gauge i{display:block;height:100%;background:var(--leaf);border-radius:2px}
+.gauge i.over{background:var(--bad)}
+
+/* ---- shell ---- */
+main{max-width:1180px;margin:0 auto;padding-block:18px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.cols{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)}}
+section{min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.card+.card{margin-top:14px}
+.chead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px;margin-bottom:10px}
+.chead h2{font-size:1.02rem}
+.chead .sub{font-size:.74rem;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+/* ---- field ---- */
+.field{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+@media (max-width:1040px){.field{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:860px){.field{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@media (max-width:620px){.field{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:420px){.field{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.plot{position:relative;display:flex;flex-direction:column;gap:0;padding:0;overflow:hidden;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:8px;text-align:left;
+  transition:border-color .15s,transform .15s}
+.plot:hover{border-color:var(--mikan)}
+.plot[aria-pressed="true"]{border-color:var(--mikan);box-shadow:inset 0 0 0 1px var(--mikan)}
+.plot .ptop{display:flex;align-items:center;justify-content:space-between;gap:3px;padding:4px 5px;flex-wrap:wrap;
+  border-bottom:1px solid var(--line)}
+.plot .pid{font-family:var(--display);font-size:.72rem;letter-spacing:.06em;color:var(--ink-2)}
+.badge{font-size:.62rem;letter-spacing:.04em;padding:1px 5px;border-radius:999px;white-space:nowrap;
+  border:1px solid var(--line-strong);color:var(--ink-2);background:var(--surface)}
+.badge.b-grow{color:var(--leaf);border-color:var(--leaf);background:var(--leaf-soft)}
+.badge.b-bear{color:var(--mikan);border-color:var(--mikan);background:var(--mikan-soft)}
+.badge.b-old{color:var(--warn);border-color:var(--warn)}
+.ground{position:relative;height:84px;
+  background:linear-gradient(180deg,var(--surface-2) 0 46%,var(--soil) 46%,var(--soil-2) 100%)}
+.ground::after{content:"";position:absolute;inset:auto 0 0;height:7px;background:var(--wall);
+  border-top:1px solid color-mix(in srgb,var(--wall),var(--ink) 18%)}
+.ground.locked{background:var(--sunk)}
+.ground.locked::after{height:3px;background:var(--line);border-top:0}
+@media (max-width:620px){.ground{height:62px}.plot .pid{font-size:.68rem}.badge{font-size:.58rem}}
+.ground svg{position:absolute;inset:0;width:100%;height:100%}
+.pfoot{padding:4px 5px 6px;display:flex;flex-direction:column;gap:4px}
+.vig{display:flex;align-items:center;gap:5px;font-size:.64rem;color:var(--ink-3)}
+.vig .bar{flex:1;min-width:0;height:3px;background:var(--sunk);border-radius:2px;overflow:hidden}
+.vig .bar i{display:block;height:100%;background:var(--leaf)}
+.vig .bar i.low{background:var(--warn)}
+.vig .bar i.crit{background:var(--bad)}
+.chips{display:flex;gap:3px;flex-wrap:wrap}
+.chip{font-size:.6rem;letter-spacing:.02em;padding:1px 4px;border-radius:4px;background:var(--sunk);color:var(--ink-3)}
+.chip.on{background:var(--leaf-soft);color:var(--leaf)}
+.chip.hi{background:var(--mikan-soft);color:var(--mikan)}
+.chip.off{color:var(--bad);background:transparent;border:1px dashed var(--bad)}
+.empty-note{position:absolute;inset:auto 0 12px;text-align:center;font-size:.66rem;color:var(--ink-3)}
+
+/* ---- controls ---- */
+.ctl{display:flex;flex-direction:column;gap:3px;margin-bottom:9px}
+.ctl>label{font-size:.72rem;color:var(--ink-2);display:flex;justify-content:space-between;gap:8px}
+.ctl>label span{color:var(--ink-3);font-size:.68rem;font-variant-numeric:tabular-nums}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{background:var(--surface-2);border:0;padding:6px 2px;font-size:.76rem;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--mikan);color:#fff;font-weight:700}
+.seg button:disabled{color:var(--ink-3);opacity:.45;cursor:not-allowed}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;
+  padding:9px 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--surface-2);
+  font-size:.82rem;font-weight:500}
+.btn:hover:not(:disabled){border-color:var(--mikan);color:var(--mikan)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--mikan);border-color:var(--mikan);color:#fff;font-family:var(--display);
+  font-size:.96rem;font-weight:700;padding:12px}
+.btn.primary:hover:not(:disabled){filter:brightness(1.08);color:#fff}
+.btn.danger:hover:not(:disabled){border-color:var(--bad);color:var(--bad)}
+.btnrow{display:flex;flex-wrap:wrap;gap:6px}
+.btnrow .btn{width:auto;flex:1 1 auto;padding:7px 10px;font-size:.76rem}
+.hint{font-size:.7rem;color:var(--ink-3);margin:6px 0 0}
+
+/* ---- ledger lines ---- */
+.led{display:flex;justify-content:space-between;gap:10px;font-size:.78rem;padding:3px 0;
+  border-bottom:1px dotted var(--line)}
+.led:last-child{border-bottom:0}
+.led dt{color:var(--ink-2);margin:0}
+.led dd{margin:0;font-variant-numeric:tabular-nums;white-space:nowrap}
+.led.total{border-top:1px solid var(--line-strong);border-bottom:0;margin-top:4px;padding-top:6px;font-weight:700}
+.led.total dd{font-family:var(--display);font-size:1rem}
+
+/* ---- report ---- */
+.wpill{display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:999px;
+  background:var(--sunk);font-size:.78rem;border:1px solid var(--line)}
+.wpill b{font-family:var(--display)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:1px;margin:11px 0;
+  background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.kpi{background:var(--surface-2);padding:8px 10px;min-width:0}
+.kpi dt{font-size:.66rem;color:var(--ink-3);margin:0}
+.kpi dd{margin:1px 0 0;font-family:var(--display);font-size:1.12rem;font-variant-numeric:tabular-nums}
+.kpi dd small{font-family:var(--body);font-size:.66rem;color:var(--ink-3);font-weight:400;margin-left:2px}
+.gbar{display:flex;gap:2px;height:26px;margin:4px 0 8px}
+.gbar i{display:block;border-radius:2px;min-width:2px}
+.gbar i:first-child{border-radius:4px 2px 2px 4px}
+.gbar i:last-child{border-radius:2px 4px 4px 2px}
+.glegend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.72rem;color:var(--ink-2)}
+.glegend span{display:inline-flex;align-items:center;gap:5px}
+.sw{width:9px;height:9px;border-radius:2px;flex:none}
+table{width:100%;border-collapse:collapse;font-size:.76rem}
+th,td{padding:4px 6px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:500;color:var(--ink-3);font-size:.68rem;letter-spacing:.04em}
+th:first-child,td:first-child{text-align:left}
+td{font-variant-numeric:tabular-nums}
+tbody tr:last-child td{border-bottom:0}
+.scroll{overflow-x:auto}
+.notices{display:flex;flex-direction:column;gap:5px;margin-top:10px}
+.notice{display:flex;gap:7px;font-size:.76rem;padding:6px 9px;border-radius:7px;background:var(--sunk);
+  border-left:3px solid var(--ink-3)}
+.notice.warn{border-left-color:var(--warn)}
+.notice.bad{border-left-color:var(--bad)}
+.notice.good{border-left-color:var(--good)}
+.notice b{font-weight:700}
+.quiet{color:var(--ink-3);font-size:.78rem}
+
+/* ---- chart ---- */
+.chartwrap{position:relative}
+.chartwrap svg{display:block;width:100%;height:auto;max-width:100%}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line-strong);
+  border-radius:7px;padding:6px 9px;font-size:.73rem;box-shadow:0 4px 14px rgba(0,0,0,.14);
+  min-width:124px;z-index:5}
+.tip[hidden]{display:none!important}
+.tip .tr{display:flex;justify-content:space-between;gap:10px}
+.tip .tr b{font-variant-numeric:tabular-nums;font-weight:700}
+.tip .ty{font-family:var(--display);margin-bottom:3px}
+.verdict{text-align:center;padding:6px 0 2px}
+.verdict .rank{font-family:var(--display);font-size:2.4rem;line-height:1;color:var(--mikan)}
+@media (prefers-reduced-motion:no-preference){
+  .fadein{animation:fi .35s ease}
+  @keyframes fi{from{opacity:.4;transform:translateY(3px)}to{opacity:1;transform:none}}
+}
+</style>
+
+<header>
+  <div class="hwrap">
+    <div class="brand">
+      <h1>みかん園経営</h1>
+      <p class="eyebrow">温州みかん・年次経営シミュレーション／1マス＝みかん1本</p>
+    </div>
+    <dl class="stats">
+      <div class="stat"><dt>年次</dt><dd id="s-year">1<small>年目 / 50</small></dd></div>
+      <div class="stat"><dt>資金</dt><dd id="s-money">¥250,000</dd></div>
+      <div class="stat"><dt>借入金</dt><dd id="s-loan">¥0</dd></div>
+      <div class="stat"><dt>累計収支</dt><dd id="s-cum">¥0</dd></div>
+      <div class="stat"><dt>自家労力</dt><dd id="s-labor">0<small>/200h</small></dd>
+        <div class="gauge"><i id="s-gauge" style="width:0%"></i></div></div>
+      <div class="stat"><dt>結果樹</dt><dd id="s-trees">3<small>本 / 3本</small></dd></div>
+    </dl>
+  </div>
+</header>
+
+<main>
+  <div class="cols">
+    <section>
+      <div class="card">
+        <div class="chead">
+          <h2>圃場</h2>
+          <p class="sub" id="f-sub">開墾 6／24区画・植栽 3本</p>
+        </div>
+        <div class="field" id="field" role="group" aria-label="圃場の区画"></div>
+        <p class="hint">マスをクリックすると、その木の作業計画を設定できます。みかんは植え付けから7年目で初結実し、20年目に収量がピークへ。経済樹齢の56年まで、最大50回収穫できます。</p>
+      </div>
+
+      <div class="card" id="report-card">
+        <div class="chead"><h2 id="r-title">今年の見込み</h2><p class="sub" id="r-sub">1年目</p></div>
+        <div id="report"></div>
+      </div>
+
+      <div class="card">
+        <div class="chead">
+          <h2>経営記録</h2>
+          <p class="sub">売上と収支の推移（万円）</p>
+        </div>
+        <div id="records"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="card">
+        <div class="chead"><h2 id="p-title">A-1 の木</h2><p class="sub" id="p-sub"></p></div>
+        <div id="plotpanel"></div>
+      </div>
+
+      <div class="card">
+        <div class="chead"><h2>一括設定</h2><p class="sub">全ての木に適用</p></div>
+        <div class="btnrow">
+          <button class="btn" data-preset="std">標準管理</button>
+          <button class="btn" data-preset="premium">秀品重視</button>
+          <button class="btn" data-preset="cheap">省力（摘果なし）</button>
+        </div>
+        <p class="hint">秀品重視は摘果を入念に、防除を徹底します。作業時間が増えるので、自家労力を超えた分の雇用賃金との釣り合いが要点です。</p>
+      </div>
+
+      <div class="card">
+        <div class="chead"><h2>今年の見積り</h2><p class="sub" id="e-sub"></p></div>
+        <div id="estimate"></div>
+        <button class="btn primary" id="advance" style="margin-top:12px">この年を終える</button>
+        <div class="btnrow" style="margin-top:8px">
+          <button class="btn" id="borrow">¥50,000 借入</button>
+          <button class="btn" id="repay">¥50,000 返済</button>
+        </div>
+        <div class="btnrow" style="margin-top:6px">
+          <button class="btn danger" id="reset">最初から</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ 設定 ============ */
+const CFG={
+  runYears:50, startMoney:180000, familyHours:200, wage:1200,
+  rows:["A","B","C","D"], cols:6, unlockedAtStart:6,
+  sapling:1500, land:12000, fellCost:800, fellHours:1.5,
+  fixedMature:1200, fixedYoung:400, commission:0.12,
+  loanUnit:50000, loanMax:600000, loanRate:0.03,
+  firstBearing:7, peakAge:20, lastAge:56, peakKg:60, oldKg:40, firstKg:8,
+  price:{shu:470,yu:280,ryo:180,kako:60}
+};
+const THIN={
+  none:{label:"なし",hours:0,  sugar:-16,vigor:-9,yieldMul:1.14,carry:0.65,look:-4},
+  std :{label:"標準",hours:1.6,sugar:8,  vigor:1, yieldMul:1.00,carry:0.90,look:2},
+  fine:{label:"入念",hours:2.8,sugar:21, vigor:4, yieldMul:0.84,carry:1.00,look:7}
+};
+const FERT={
+  none:{label:"なし",hours:0,  cost:0,   sugar:4,  vigor:-15,yieldMul:0.80,look:-3},
+  std :{label:"標準",hours:0.7,cost:1000,sugar:6,  vigor:5,  yieldMul:1.00,look:2},
+  much:{label:"多め",hours:0.9,cost:1500,sugar:-13,vigor:8,  yieldMul:1.08,look:-5}
+};
+const PEST={
+  none:{label:"なし",hours:0,  cost:0,   look:-32,vigor:-8,yieldMul:0.80},
+  std :{label:"標準",hours:0.8,cost:800, look:7,  vigor:1, yieldMul:1.00},
+  full:{label:"徹底",hours:1.3,cost:1300,look:19, vigor:3, yieldMul:1.03}
+};
+const WEATHER=[
+  {k:"fine",   label:"好天",         p:.12,y:1.06,s:12,l:3,  v:0,  m:-.06,note:"秋の晴天が続き、糖度がよく乗った。"},
+  {k:"normal", label:"平年",         p:.32,y:1.00,s:0, l:0,  v:0,  m:-.02,note:"大きな気象災害のない年だった。"},
+  {k:"rain",   label:"長雨・日照不足",p:.18,y:0.97,s:-15,l:-7,v:-2, m:.03, note:"秋の長雨で着色と糖ののりが遅れた。"},
+  {k:"drought",label:"干ばつ",       p:.13,y:0.84,s:9, l:-3, v:-5, m:.05, note:"夏の少雨で小玉傾向。ただし糖度は高い。"},
+  {k:"typhoon",label:"台風",         p:.14,y:0.71,s:-7,l:-25,v:-7, m:.12, note:"潮風害と枝擦れで傷果が多発した。"},
+  {k:"cold",   label:"寒波・凍害",   p:.11,y:0.78,s:-6,l:-13,v:-11,m:.10, note:"年明けの低温で樹が傷み、浮皮も出た。"}
+];
+const GRADES=[
+  {k:"shu", label:"秀", css:"--g-shu", desc:"糖度が高く、外観に傷がない"},
+  {k:"yu",  label:"優", css:"--g-yu",  desc:"糖度・外観のどちらかが一歩届かない"},
+  {k:"ryo", label:"良", css:"--g-ryo", desc:"生食で売れるが、食味は並"},
+  {k:"kako",label:"加工",css:"--g-kako",desc:"傷果・病害果・低糖度。ジュース向け"}
+];
+
+/* ============ 補助 ============ */
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const yen=n=>(n<0?"-¥":"¥")+Math.abs(Math.round(n)).toLocaleString("ja-JP");
+const man=n=>(n/10000);
+const kg=n=>Math.round(n).toLocaleString("ja-JP");
+const pct=n=>(n*100).toFixed(1);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+const $=id=>document.getElementById(id);
+
+function potential(age){
+  const {firstBearing:f,peakAge:p,lastAge:l,peakKg:P,firstKg:F,oldKg:O}=CFG;
+  if(age<f||age>l) return 0;
+  if(age<=p) return F+(P-F)*(age-f)/(p-f);
+  if(age<=40) return P;
+  return P-(P-O)*(age-40)/(l-40);
+}
+function rollWeather(){
+  let r=Math.random(),acc=0;
+  for(const w of WEATHER){acc+=w.p;if(r<acc)return w;}
+  return WEATHER[1];
+}
+function plan(p){return {thin:THIN[p.thin],fert:FERT[p.fert],pest:PEST[p.pest]};}
+
+/* 1区画の収穫を計算する。weather を省略すると平年として見積る。 */
+function harvest(tree,p,weather){
+  const w=weather||WEATHER[1], t=plan(p), bearing=tree.age>=CFG.firstBearing&&tree.age<=CFG.lastAge;
+  const pot=potential(tree.age);
+  if(!bearing||pot<=0) return {yieldKg:0,bearing:false};
+  const vigorMul=0.5+tree.vigor/100*0.62;
+  const yieldKg=pot*vigorMul*t.thin.yieldMul*t.fert.yieldMul*t.pest.yieldMul*w.y*tree.carry;
+  let sugar=48+t.thin.sugar+t.fert.sugar+w.s+(tree.vigor-65)*0.18;
+  sugar+=tree.age<=9?-6:(tree.age>=45?5:0);
+  sugar-=Math.max(0,yieldKg/pot-1)*42;
+  sugar=clamp(sugar,5,100);
+  let look=55+t.thin.look+t.fert.look+t.pest.look+w.l+(tree.vigor-65)*0.12;
+  look=clamp(look,0,100);
+  const kako=clamp((100-look)/100*0.52+clamp(38-sugar,0,38)/38*0.35+0.02,0.02,0.90);
+  const rest=1-kako;
+  const shu=rest*clamp((sugar-40)/44,0,1)*0.82;
+  const rest2=rest-shu;
+  const yu=rest2*clamp((sugar-25)/50,0,1)*(0.30+0.50*look/100);
+  return {yieldKg,bearing:true,sugar,look,brix:8.8+sugar/100*4.4,
+    mix:{shu,yu,ryo:rest2-yu,kako}};
+}
+function plotHours(pl,expectKg){
+  if(!pl.tree) return 0;
+  const t=plan(pl.plan), a=pl.tree.age, bearing=a>=CFG.firstBearing&&a<=CFG.lastAge;
+  let h=a<=1?3.5:(a<CFG.firstBearing?1.5:2.5);
+  h+=t.fert.hours+t.pest.hours;
+  if(bearing){h+=t.thin.hours;h+=expectKg/CFG.peakKg*3.0;}
+  return h;
+}
+function plotMaterial(pl){
+  if(!pl.tree) return 0;
+  const t=plan(pl.plan), a=pl.tree.age;
+  return t.fert.cost+t.pest.cost+(a>=CFG.firstBearing?CFG.fixedMature:CFG.fixedYoung);
+}
+
+/* ============ 状態 ============ */
+let state;
+function newState(){
+  const plots=[];
+  CFG.rows.forEach((r,ri)=>{
+    for(let c=1;c<=CFG.cols;c++){
+      const i=plots.length;
+      plots.push({id:r+"-"+c,unlocked:i<CFG.unlockedAtStart,tree:null,
+        plan:{thin:"std",fert:"std",pest:"std"}});
+    }
+  });
+  plots[0].tree={age:12,vigor:78,carry:1};
+  plots[1].tree={age:12,vigor:74,carry:1};
+  plots[2].tree={age:12,vigor:71,carry:1};
+  return {year:1,money:CFG.startMoney,loan:0,cum:0,sel:0,extraHours:0,invest:0,plots,
+    records:[],last:null,notices:[],over:false,verdict:null};
+}
+const SAVE="mikan-orchard-v1";
+function save(){try{localStorage.setItem(SAVE,JSON.stringify(state));}catch(e){}}
+function load(){
+  try{
+    const raw=localStorage.getItem(SAVE);
+    if(!raw) return null;
+    const s=JSON.parse(raw);
+    if(!s||!Array.isArray(s.plots)||s.plots.length!==CFG.rows.length*CFG.cols) return null;
+    if(!Array.isArray(s.records)) return null;
+    return s;
+  }catch(e){return null;}
+}
+
+/* ============ 年を進める ============ */
+function advanceYear(){
+  if(state.over) return;
+  const w=rollWeather(), notices=[];
+  let totalKg=0,brixW=0,hours=state.extraHours,material=0;
+  const mix={shu:0,yu:0,ryo:0,kako:0}, perPlot=[];
+
+  state.plots.forEach(pl=>{
+    if(!pl.tree) return;
+    const h=harvest(pl.tree,pl.plan,w);
+    hours+=plotHours(pl,h.yieldKg);
+    material+=plotMaterial(pl);
+    if(h.bearing){
+      totalKg+=h.yieldKg; brixW+=h.brix*h.yieldKg;
+      GRADES.forEach(g=>{mix[g.k]+=h.yieldKg*h.mix[g.k];});
+    }
+    perPlot.push({id:pl.id,age:pl.tree.age,kg:h.yieldKg,brix:h.bearing?h.brix:0,
+      shu:h.bearing?h.mix.shu:0});
+  });
+
+  /* 樹勢・樹齢の更新 */
+  let carryWarn=0,vigorWarn=0;
+  state.plots.forEach(pl=>{
+    if(!pl.tree) return;
+    const t=plan(pl.plan),a=pl.tree.age,bearing=a>=CFG.firstBearing&&a<=CFG.lastAge;
+    let v=pl.tree.vigor+t.fert.vigor+t.pest.vigor+w.v+(bearing?t.thin.vigor:2);
+    if(a>=45) v-=1.5;
+    if(a<CFG.firstBearing) v+=2;
+    pl.tree.vigor=clamp(v,25,100);
+    pl.tree.carry=bearing?t.thin.carry:1;
+    if(pl.tree.carry<0.95) carryWarn++;
+    if(pl.tree.vigor<=38) vigorWarn++;
+    pl.tree.age++;
+    if(pl.tree.age>CFG.lastAge){
+      pl.tree=null; material+=CFG.fellCost; hours+=CFG.fellHours;
+      notices.push({t:"warn",msg:"<b>"+pl.id+"</b> は樹齢"+CFG.lastAge+"年で経済樹齢を終え、伐採しました。同じ場所に改植できます。"});
+    }
+  });
+
+  /* 市場と精算 */
+  const market=clamp(0.86+Math.random()*0.30+w.m,0.70,1.45);
+  let revenue=0; const lines=GRADES.map(g=>{
+    const q=mix[g.k],unit=CFG.price[g.k]*market,amt=q*unit;
+    revenue+=amt; return {k:g.k,label:g.label,css:g.css,kg:q,unit,amt};
+  });
+  const commission=revenue*CFG.commission;
+  const hired=Math.max(0,hours-CFG.familyHours), wages=hired*CFG.wage;
+  const interest=state.loan*CFG.loanRate;
+  const invest=state.invest||0;
+  const operating=revenue-commission-material-wages-interest;
+  const balance=operating-invest;
+  state.money+=operating; state.cum+=operating;
+
+  if(carryWarn) notices.push({t:"warn",msg:"摘果を省いた<b>"+carryWarn+"本</b>は、来年の着果が大きく落ちます（隔年結果）。"});
+  if(vigorWarn) notices.push({t:"bad",msg:"<b>"+vigorWarn+"本</b>で樹勢が低下しています。施肥と防除を見直してください。"});
+  if(totalKg>0&&mix.shu/totalKg>=0.45) notices.push({t:"good",msg:"秀品率<b>"+pct(mix.shu/totalKg)+"%</b>。市場で高値がついた年です。"});
+
+  /* 資金不足は自動的に借入でつなぐ */
+  while(state.money<0&&state.loan+CFG.loanUnit<=CFG.loanMax){
+    state.loan+=CFG.loanUnit; state.money+=CFG.loanUnit;
+    notices.push({t:"warn",msg:"資金が不足したため <b>"+yen(CFG.loanUnit)+"</b> を借り入れました。"});
+  }
+  if(state.money<0){
+    state.over=true;
+    state.verdict={rank:"—",title:"経営破綻",
+      body:"借入枠を使い切り、資金が尽きました。植えた苗は7年間収入を生みません。植え付けのペースと管理水準を、手元資金と自家労力に合わせるのが要点です。"};
+  }
+
+  const brix=totalKg?brixW/totalKg:0;
+  state.records.push({year:state.year,weather:w.label,kg:totalKg,brix,
+    shuRate:totalKg?mix.shu/totalKg:0,unit:totalKg?revenue/totalKg:0,
+    revenue,balance,cum:state.cum,market});
+  state.last={w,lines,totalKg,brix,revenue,commission,material,wages,interest,invest,
+    balance,hours,hired,market,perPlot,notices,year:state.year,
+    shuRate:totalKg?mix.shu/totalKg:0};
+
+  state.year++; state.extraHours=0; state.invest=0;
+
+  if(!state.over&&state.year>CFG.runYears&&!state.verdict){
+    const c=state.cum;
+    const tiers=[[10000000,"秀","産地を代表する園地","累計収支"+yen(c)+"。摘果と防除を欠かさず、樹を若く保った50年でした。"],
+                 [7000000,"優","安定した経営","累計収支"+yen(c)+"。本数と管理水準の釣り合いが取れていました。"],
+                 [3500000,"良","堅実な経営","累計収支"+yen(c)+"。開墾と改植の判断を早めると、もう一段伸びます。"],
+                 [0,"並","収支は黒字","累計収支"+yen(c)+"。秀品率を上げると、同じ収量でも売上がまとめて動きます。"]];
+    const t=tiers.find(x=>c>=x[0])||[0,"加工","赤字決算","累計収支"+yen(c)+"。資材費と雇用賃金が売上を上回りました。"];
+    state.verdict={rank:t[1],title:t[2],body:t[3],done:true};
+  }
+  save(); renderAll(); 
+  const rc=$("report-card"); rc.classList.remove("fadein"); void rc.offsetWidth; rc.classList.add("fadein");
+}
+
+/* ============ 描画 ============ */
+const FRUIT=[[0,-.45],[-.55,-.1],[.55,-.05],[-.25,.4],[.3,.45],[-.7,-.5],[.68,-.5],
+  [0,.15],[-.4,-.7],[.42,-.72],[.85,.2],[-.85,.25],[.15,-.9],[-.15,.75],[.62,.6],[-.6,.62]];
+function treeSVG(pl){
+  const t=pl.tree;
+  if(!t) return pl.unlocked
+    ? '<svg viewBox="0 0 100 104" aria-hidden="true"><g stroke="var(--line-strong)" stroke-width="1" fill="none" opacity=".8">'
+      +'<path d="M14 72h72M14 80h72M14 88h72"/></g></svg>'
+    : '<svg viewBox="0 0 100 104" aria-hidden="true"><g stroke="var(--line)" stroke-width="1" fill="none">'
+      +'<path d="M10 60l80 0M10 70l80 0M10 80l80 0M10 90l80 0" stroke-dasharray="3 5"/></g></svg>';
+  const grow=Math.min(1,t.age/CFG.peakAge), r=9+grow*20, th=6+grow*9;
+  const cy=95-th-r*0.86, vig=clamp(t.vigor,25,100);
+  const op=(0.5+vig/100*0.5).toFixed(2);
+  const bearing=t.age>=CFG.firstBearing&&t.age<=CFG.lastAge;
+  const h=bearing?harvest(t,pl.plan,null):null;
+  let s='<svg viewBox="0 0 100 104" aria-hidden="true">';
+  s+='<rect x="'+(50-1.1-grow*1.2).toFixed(1)+'" y="'+(cy+r*0.5).toFixed(1)+'" width="'+(2.2+grow*2.4).toFixed(1)
+    +'" height="'+(95-cy-r*0.5).toFixed(1)+'" fill="#6b4a2d" opacity=".85"/>';
+  s+='<ellipse cx="50" cy="'+cy.toFixed(1)+'" rx="'+(r*1.18).toFixed(1)+'" ry="'+r.toFixed(1)
+    +'" fill="var(--leaf)" opacity="'+op+'"/>';
+  s+='<ellipse cx="'+(50-r*0.4).toFixed(1)+'" cy="'+(cy-r*0.3).toFixed(1)+'" rx="'+(r*0.45).toFixed(1)
+    +'" ry="'+(r*0.36).toFixed(1)+'" fill="var(--leaf)" opacity="'+Math.min(1,op*0.55).toFixed(2)+'"/>';
+  if(t.age<CFG.firstBearing)
+    s+='<line x1="58" y1="95" x2="54" y2="'+(cy+r*0.2).toFixed(1)+'" stroke="#9a8straight" />'
+      .replace('#9a8straight','#a08a63').replace('/>','stroke-width="1"/>');
+  if(bearing&&h&&h.yieldKg>0){
+    const n=clamp(Math.round(h.yieldKg/CFG.peakKg*13)+2,3,16);
+    for(let i=0;i<n;i++){
+      const o=FRUIT[i];
+      s+='<circle cx="'+(50+o[0]*r*1.0).toFixed(1)+'" cy="'+(cy+o[1]*r*0.82).toFixed(1)
+        +'" r="'+(1.7+grow*0.9).toFixed(1)+'" fill="var(--mikan)"/>';
+    }
+  }
+  return s+'</svg>';
+}
+function plotBadge(pl){
+  if(!pl.unlocked) return '<span class="badge">未開墾</span>';
+  if(!pl.tree) return '<span class="badge">空き</span>';
+  const a=pl.tree.age;
+  if(a<CFG.firstBearing) return '<span class="badge b-grow">育成 '+a+'年</span>';
+  if(a>=50) return '<span class="badge b-old">老木 '+a+'年</span>';
+  return '<span class="badge b-bear">成木 '+a+'年</span>';
+}
+function renderField(){
+  const f=$("field");
+  f.innerHTML=state.plots.map((pl,i)=>{
+    const sel=i===state.sel?'true':'false';
+    let foot='';
+    if(pl.tree){
+      const v=pl.tree.vigor, cls=v<40?'crit':(v<65?'low':'');
+      const t=pl.plan, bearing=pl.tree.age>=CFG.firstBearing;
+      const chip=(label,key,map)=>{
+        const k=t[key];
+        const c=k==="none"?"off":(k==="fine"||k==="full"||k==="much"?"hi":"on");
+        return '<span class="chip '+c+'">'+label+map[k].label+'</span>';
+      };
+      foot='<div class="vig"><span>樹勢</span><span class="bar"><i class="'+cls
+        +'" style="width:'+v.toFixed(0)+'%"></i></span><span class="num">'+v.toFixed(0)+'</span></div>'
+        +'<div class="chips">'+(bearing?chip("摘","thin",THIN):"")
+        +chip("肥","fert",FERT)+chip("防","pest",PEST)+'</div>';
+    }else{
+      foot='<div class="chips"><span class="chip">'+(pl.unlocked?'植え付け可':'開墾 ¥'+CFG.land.toLocaleString("ja-JP"))+'</span></div>';
+    }
+    return '<button class="plot" type="button" aria-pressed="'+sel+'" data-plot="'+i+'">'
+      +'<span class="ptop"><span class="pid">'+pl.id+'</span>'+plotBadge(pl)+'</span>'
+      +'<span class="ground'+(pl.unlocked?'':' locked')+'">'+treeSVG(pl)+'</span>'
+      +'<span class="pfoot">'+foot+'</span></button>';
+  }).join("");
+  const un=state.plots.filter(p=>p.unlocked).length;
+  const planted=state.plots.filter(p=>p.tree).length;
+  $("f-sub").textContent="開墾 "+un+"／"+state.plots.length+"区画・植栽 "+planted+"本";
+}
+
+/* ---- 見積り（平年として計算） ---- */
+function estimate(){
+  let hours=state.extraHours||0,material=0,kgEst=0,bearing=0,planted=0;
+  state.plots.forEach(pl=>{
+    if(!pl.tree) return;
+    planted++;
+    const h=harvest(pl.tree,pl.plan,null);
+    if(h.bearing){bearing++;kgEst+=h.yieldKg;}
+    hours+=plotHours(pl,h.yieldKg);
+    material+=plotMaterial(pl);
+  });
+  const hired=Math.max(0,hours-CFG.familyHours),wages=hired*CFG.wage;
+  const interest=state.loan*CFG.loanRate,invest=state.invest||0;
+  return {hours,hired,wages,material,interest,invest,kgEst,bearing,planted,
+    out:material+wages+interest+invest};
+}
+function renderHeader(){
+  const e=estimate();
+  $("s-year").innerHTML=Math.min(state.year,999)+'<small>年目 / '+CFG.runYears+'</small>';
+  $("s-money").textContent=yen(state.money);
+  $("s-money").className=state.money<0?"neg":"";
+  $("s-loan").textContent=yen(state.loan);
+  $("s-cum").textContent=yen(state.cum);
+  $("s-cum").className=state.cum<0?"neg":"";
+  $("s-labor").innerHTML=e.hours.toFixed(0)+'<small>/'+CFG.familyHours.toLocaleString("ja-JP")+'h</small>';
+  const g=$("s-gauge"),r=e.hours/CFG.familyHours;
+  g.style.width=Math.min(100,r*100).toFixed(0)+"%";
+  g.className=r>1?"over":"";
+  $("s-trees").innerHTML=e.bearing+'<small>本 / '+e.planted+'本</small>';
+}
+
+/* ---- 1本の作業計画パネル ---- */
+const SEGS=[{key:"thin",label:"摘果",map:THIN,note:"着果量を減らすと糖度と秀品率が上がり、隔年結果も防げます"},
+            {key:"fert",label:"施肥",map:FERT,note:"樹勢を保つ要。多肥は樹を大きくしますが粗皮・低糖度に"},
+            {key:"pest",label:"防除",map:PEST,note:"病害虫による傷果を抑え、外観を守ります"}];
+function renderPanel(){
+  const pl=state.plots[state.sel],el=$("plotpanel");
+  $("p-title").textContent=pl.id+" の木";
+  let sub="",html="";
+  if(!pl.unlocked){
+    $("p-sub").textContent="未開墾";
+    el.innerHTML='<p class="quiet">まだ開墾していない区画です。開墾すると苗木を植えられます。</p>'
+      +'<button class="btn" data-act="unlock" style="margin-top:10px"'+(state.money<CFG.land?" disabled":"")
+      +'>この区画を開墾する（'+yen(CFG.land)+'）</button>';
+    return;
+  }
+  if(!pl.tree){
+    $("p-sub").textContent="空き";
+    el.innerHTML='<p class="quiet">苗木を植えると、7年目に初めて収穫できます。そこから20年目まで収量が毎年増え、56年までで最大50回収穫できます。</p>'
+      +'<button class="btn" data-act="plant" style="margin-top:10px"'+(state.money<CFG.sapling?" disabled":"")
+      +'>苗木を植える（'+yen(CFG.sapling)+'・植え付け3.5h）</button>';
+    return;
+  }
+  const t=pl.tree,bearing=t.age>=CFG.firstBearing&&t.age<=CFG.lastAge;
+  const h=harvest(t,pl.plan,null),hrs=plotHours(pl,h.yieldKg||0);
+  sub="樹齢 "+t.age+"年／樹勢 "+t.vigor.toFixed(0)+"／作業 "+hrs.toFixed(1)+"h";
+  $("p-sub").textContent=sub;
+  if(bearing){
+    html+='<dl class="led"><dt>見込み収量（平年）</dt><dd>'+kg(h.yieldKg)+' kg</dd></dl>'
+      +'<dl class="led"><dt>見込み糖度</dt><dd>'+h.brix.toFixed(1)+' 度</dd></dl>'
+      +'<dl class="led"><dt>見込み秀品率</dt><dd>'+pct(h.mix.shu)+' %</dd></dl>';
+    if(t.carry<1) html+='<div class="notice warn" style="margin:8px 0">昨年の摘果不足で、今年の着果は <b>'
+      +Math.round(t.carry*100)+'%</b> に落ちています。</div>';
+  }else{
+    html+='<dl class="led"><dt>初結実まで</dt><dd>あと '+Math.max(0,CFG.firstBearing-t.age)+' 年</dd></dl>';
+  }
+  html+='<div style="height:10px"></div>';
+  SEGS.forEach(sg=>{
+    const cur=pl.plan[sg.key],keys=Object.keys(sg.map);
+    const off=(sg.key==="thin"&&!bearing);
+    html+='<div class="ctl"><label>'+sg.label
+      +'<span>'+(off?"結果樹のみ":(sg.map[cur].cost?yen(sg.map[cur].cost)+"・":"")
+      +sg.map[cur].hours.toFixed(1)+"h")+'</span></label><div class="seg">'
+      +keys.map(k=>'<button type="button" data-plan="'+sg.key+'" data-val="'+k+'" aria-pressed="'
+        +(cur===k?'true':'false')+'"'+(off?' disabled':'')+'>'+sg.map[k].label+'</button>').join("")
+      +'</div></div>';
+  });
+  html+='<p class="hint" style="margin-bottom:10px">'+SEGS.map(s=>s.note)[0]+'。</p>'
+    +'<div class="btnrow"><button class="btn" data-act="applyall">この計画を全ての木に</button>'
+    +'<button class="btn danger" data-act="fell">伐採（'+yen(CFG.fellCost)+'）</button></div>';
+  el.innerHTML=html;
+}
+
+/* ---- 今年の見積り ---- */
+function renderEstimate(){
+  const e=estimate(),el=$("estimate");
+  $("e-sub").textContent=state.year+"年目・平年想定";
+  el.innerHTML=
+    '<dl class="led"><dt>作業時間</dt><dd>'+e.hours.toFixed(0)+' h</dd></dl>'
+    +'<dl class="led"><dt>うち雇用（'+yen(CFG.wage)+'/h）</dt><dd>'+e.hired.toFixed(0)+' h</dd></dl>'
+    +'<dl class="led"><dt>雇用賃金</dt><dd>'+yen(e.wages)+'</dd></dl>'
+    +'<dl class="led"><dt>肥料・農薬・資材</dt><dd>'+yen(e.material)+'</dd></dl>'
+    +(e.interest?'<dl class="led"><dt>借入利息</dt><dd>'+yen(e.interest)+'</dd></dl>':'')
+    +(e.invest?'<dl class="led"><dt>開墾・植え付け（支払済）</dt><dd>'+yen(e.invest)+'</dd></dl>':'')
+    +'<dl class="led total"><dt>支出見込み</dt><dd>'+yen(e.out)+'</dd></dl>'
+    +'<dl class="led"><dt>収穫する木</dt><dd>'+e.bearing+' 本・'+kg(e.kgEst)+' kg</dd></dl>';
+  const btn=$("advance");
+  btn.disabled=!!state.over;
+  btn.textContent=state.over?"経営終了":state.year+"年目を終える";
+  $("borrow").disabled=state.over||state.loan+CFG.loanUnit>CFG.loanMax;
+  $("repay").disabled=state.over||state.loan<CFG.loanUnit||state.money<CFG.loanUnit;
+}
+
+/* ---- 年次レポート ---- */
+function gradeBar(lines,total){
+  if(!total) return "";
+  return '<div class="gbar">'+lines.map(l=>'<i style="flex:'+(l.kg/total).toFixed(4)
+    +' 1 0;background:var('+l.css+')"></i>').join("")+'</div>'
+    +'<div class="glegend">'+lines.map(l=>'<span><i class="sw" style="background:var('+l.css
+    +')"></i>'+l.label+' <b class="num">'+pct(l.kg/total)+'%</b></span>').join("")+'</div>';
+}
+function renderReport(){
+  const el=$("report"),r=state.last;
+  if(!r){
+    const e=estimate();
+    $("r-title").textContent="等級と単価";
+    $("r-sub").textContent=state.year+"年目・収穫前";
+    el.innerHTML='<p class="quiet">収穫したみかんは選果場で等級に分かれ、等級ごとの単価で精算されます。糖度が高く外観の良い玉ほど「秀」に入り、傷果や病害果は加工（ジュース）向けになります。</p>'
+      +'<div class="scroll" style="margin-top:10px"><table><thead><tr><th>等級</th><th>基準</th><th>基準単価</th></tr></thead><tbody>'
+      +GRADES.map(g=>'<tr><td><i class="sw" style="display:inline-block;background:var('+g.css
+        +');margin-right:6px"></i>'+g.label+'</td><td style="text-align:left;white-space:normal">'+g.desc
+        +'</td><td>'+yen(CFG.price[g.k])+' /kg</td></tr>').join("")
+      +'</tbody></table></div>'
+      +'<p class="hint">単価はこれに市場指数（0.70〜1.45）が掛かります。豊作の年は全国の出荷量が増えて安くなり、台風や寒波の年は高くなります。農協手数料・運賃として売上の'
+      +(CFG.commission*100)+'%が引かれます。</p>'
+      +(e.bearing?'':'<div class="notice" style="margin-top:10px">まだ結果樹がありません。'
+        +'樹齢7年になると収穫が始まります。</div>');
+    return;
+  }
+  $("r-title").textContent=r.year+"年目の収穫";
+  $("r-sub").textContent="市場指数 "+r.market.toFixed(2);
+  let h='<span class="wpill"><b>'+r.w.label+'</b><span class="quiet">'+esc(r.w.note)+'</span></span>';
+  h+='<dl class="kpis">'
+    +'<div class="kpi"><dt>収量</dt><dd>'+kg(r.totalKg)+'<small>kg</small></dd></div>'
+    +'<div class="kpi"><dt>平均糖度</dt><dd>'+(r.totalKg?r.brix.toFixed(1):"—")+'<small>度</small></dd></div>'
+    +'<div class="kpi"><dt>秀品率</dt><dd>'+(r.totalKg?pct(r.shuRate):"—")+'<small>%</small></dd></div>'
+    +'<div class="kpi"><dt>平均単価</dt><dd>'+(r.totalKg?Math.round(r.revenue/r.totalKg):"—")+'<small>円/kg</small></dd></div>'
+    +'<div class="kpi"><dt>作業時間</dt><dd>'+r.hours.toFixed(0)+'<small>h（雇用'+r.hired.toFixed(0)+'h）</small></dd></div>'
+    +'</dl>';
+  if(r.totalKg>0){
+    h+='<h3 style="font-size:.86rem;margin-bottom:2px">等級構成</h3>'+gradeBar(r.lines,r.totalKg)
+      +'<div class="scroll" style="margin-top:8px"><table><thead><tr><th>等級</th><th>数量</th><th>単価</th><th>金額</th></tr></thead><tbody>'
+      +r.lines.map(l=>'<tr><td><i class="sw" style="display:inline-block;background:var('+l.css
+        +');margin-right:6px"></i>'+l.label+'</td><td>'+kg(l.kg)+' kg</td><td>'+Math.round(l.unit)
+        +' 円</td><td>'+yen(l.amt)+'</td></tr>').join("")
+      +'</tbody></table></div>';
+  }else{
+    h+='<p class="quiet">今年の収穫はありません。</p>';
+  }
+  h+='<div style="height:12px"></div>'
+    +'<dl class="led"><dt>売上</dt><dd>'+yen(r.revenue)+'</dd></dl>'
+    +'<dl class="led"><dt>農協手数料・運賃</dt><dd>'+yen(-r.commission)+'</dd></dl>'
+    +'<dl class="led"><dt>肥料・農薬・資材</dt><dd>'+yen(-r.material)+'</dd></dl>'
+    +'<dl class="led"><dt>雇用賃金</dt><dd>'+yen(-r.wages)+'</dd></dl>'
+    +(r.interest?'<dl class="led"><dt>借入利息</dt><dd>'+yen(-r.interest)+'</dd></dl>':'')
+    +(r.invest?'<dl class="led"><dt>開墾・植え付け</dt><dd>'+yen(-r.invest)+'</dd></dl>':'')
+    +'<dl class="led total"><dt>収支</dt><dd class="'+(r.balance<0?"neg":"")+'">'+yen(r.balance)+'</dd></dl>';
+  if(r.notices.length) h+='<div class="notices">'+r.notices.map(n=>'<div class="notice '+n.t+'">'
+    +n.msg+'</div>').join("")+'</div>';
+  if(state.verdict) h+='<div class="notice '+(state.over?"bad":"good")+'" style="margin-top:12px;display:block">'
+    +'<div class="verdict"><div class="rank">'+state.verdict.rank+'</div><b>'+state.verdict.title+'</b>'
+    +'<p class="quiet" style="margin:4px 0 0">'+state.verdict.body+'</p></div></div>';
+  el.innerHTML=h;
+}
+
+/* ---- 経営記録（売上と収支） ---- */
+const VB={w:760,h:232,l:50,r:58,t:14,b:30};
+let chartPts=null;
+function renderRecords(){
+  const el=$("records"),rs=state.records;
+  if(!rs.length){
+    el.innerHTML='<p class="quiet">まだ記録がありません。1年目を終えると、売上と収支の推移がここに残ります。</p>';
+    chartPts=null; return;
+  }
+  const xs=rs.map(r=>r.year);
+  const vals=rs.flatMap(r=>[r.revenue,r.balance]);
+  let yMax=Math.max(...vals,0)*1.12||1, yMin=Math.min(...vals,0)*1.12;
+  if(yMax-yMin<10000) yMax=yMin+10000;
+  const lastX=Math.max(10,xs[xs.length-1]);
+  const px=y=>VB.l+(y-1)/(lastX-1)*(VB.w-VB.l-VB.r);
+  const py=v=>VB.t+(yMax-v)/(yMax-yMin)*(VB.h-VB.t-VB.b);
+  const line=key=>rs.map(r=>px(r.year).toFixed(1)+","+py(r[key]).toFixed(1)).join(" ");
+  const ticks=4,gy=[];
+  for(let i=0;i<=ticks;i++){const v=yMin+(yMax-yMin)*i/ticks;gy.push(v);}
+  const dec=(yMax-yMin)/10000<12?1:0;
+  const ylab=v=>man(v).toFixed(dec);
+  const last=rs[rs.length-1];
+  let s='<svg viewBox="0 0 '+VB.w+' '+VB.h+'" role="img" aria-label="売上と収支の推移">';
+  gy.forEach(v=>{
+    s+='<line x1="'+VB.l+'" y1="'+py(v).toFixed(1)+'" x2="'+(VB.w-VB.r)+'" y2="'+py(v).toFixed(1)
+      +'" stroke="var(--line)" stroke-width="1"/>'
+      +'<text x="'+(VB.l-8)+'" y="'+(py(v)+4).toFixed(1)+'" text-anchor="end" font-size="11" '
+      +'fill="var(--ink-3)" style="font-variant-numeric:tabular-nums">'+ylab(v)+'</text>';
+  });
+  if(yMin<0) s+='<line x1="'+VB.l+'" y1="'+py(0).toFixed(1)+'" x2="'+(VB.w-VB.r)+'" y2="'+py(0).toFixed(1)
+    +'" stroke="var(--line-strong)" stroke-width="1"/>';
+  const xticks=[1];for(let y=10;y<=lastX;y+=10)xticks.push(y);
+  if(!xticks.includes(last.year))xticks.push(last.year);
+  xticks.forEach(y=>{s+='<text x="'+px(y).toFixed(1)+'" y="'+(VB.h-10)+'" text-anchor="middle" font-size="11" '
+    +'fill="var(--ink-3)" style="font-variant-numeric:tabular-nums">'+y+'</text>';});
+  s+='<text x="'+(VB.l-8)+'" y="'+(VB.t-2)+'" text-anchor="end" font-size="10" fill="var(--ink-3)">万円</text>';
+  s+='<g id="ch-cross" opacity="0"><line id="ch-line" y1="'+VB.t+'" y2="'+(VB.h-VB.b)
+    +'" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="3 3"/>'
+    +'<circle id="ch-d1" r="4.5" fill="var(--s-rev)" stroke="var(--surface)" stroke-width="2"/>'
+    +'<circle id="ch-d2" r="4.5" fill="var(--s-bal)" stroke="var(--surface)" stroke-width="2"/></g>';
+  s+='<polyline points="'+line("revenue")+'" fill="none" stroke="var(--s-rev)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+  s+='<polyline points="'+line("balance")+'" fill="none" stroke="var(--s-bal)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+  [["revenue","--s-rev","売上"],["balance","--s-bal","収支"]].forEach(([k,c,lb])=>{
+    s+='<circle cx="'+px(last.year).toFixed(1)+'" cy="'+py(last[k]).toFixed(1)+'" r="4" fill="var('+c
+      +')" stroke="var(--surface)" stroke-width="2"/>'
+      +'<text x="'+(px(last.year)+9).toFixed(1)+'" y="'+(py(last[k])+4).toFixed(1)+'" font-size="12" '
+      +'fill="var(--ink-2)">'+lb+'</text>';
+  });
+  s+='<rect id="ch-hit" x="'+VB.l+'" y="'+VB.t+'" width="'+(VB.w-VB.l-VB.r)+'" height="'+(VB.h-VB.t-VB.b)
+    +'" fill="transparent" style="cursor:crosshair"/></svg>';
+
+  el.innerHTML='<div class="glegend" style="margin-bottom:6px">'
+    +'<span><i class="sw" style="background:var(--s-rev)"></i>売上</span>'
+    +'<span><i class="sw" style="background:var(--s-bal)"></i>収支（開墾・植え付けを含む）</span></div>'
+    +'<div class="chartwrap" id="chartwrap">'+s+'<div class="tip" id="tip" hidden></div></div>'
+    +'<div class="scroll" style="max-height:248px;overflow-y:auto;margin-top:12px">'
+    +'<table><thead><tr><th>年</th><th>天候</th><th>収量</th><th>糖度</th><th>秀品率</th><th>単価</th><th>売上</th><th>収支</th><th>累計</th></tr></thead><tbody>'
+    +rs.slice().reverse().map(r=>'<tr><td>'+r.year+'</td><td style="text-align:left">'+r.weather+'</td><td>'
+      +kg(r.kg)+'</td><td>'+(r.kg?r.brix.toFixed(1):"—")+'</td><td>'+(r.kg?pct(r.shuRate):"—")+'</td><td>'
+      +(r.kg?Math.round(r.unit):"—")+'</td><td>'+yen(r.revenue)+'</td><td class="'+(r.balance<0?"neg":"")+'">'
+      +yen(r.balance)+'</td><td class="'+(r.cum<0?"neg":"")+'">'+yen(r.cum)+'</td></tr>').join("")
+    +'</tbody></table></div>';
+  chartPts={rs,px,py,lastX};
+  bindChart();
+}
+function bindChart(){
+  const hit=$("ch-hit");if(!hit||!chartPts)return;
+  const wrap=$("chartwrap"),tip=$("tip"),cross=$("ch-cross");
+  const show=ev=>{
+    const rect=hit.getBoundingClientRect();
+    if(!rect.width)return;
+    const svgRect=wrap.querySelector("svg").getBoundingClientRect();
+    const scale=svgRect.width/VB.w;
+    const vx=(ev.clientX-svgRect.left)/scale;
+    const {rs,px,py}=chartPts;
+    let best=rs[0],bd=Infinity;
+    rs.forEach(r=>{const d=Math.abs(px(r.year)-vx);if(d<bd){bd=d;best=r;}});
+    cross.setAttribute("opacity","1");
+    $("ch-line").setAttribute("x1",px(best.year));$("ch-line").setAttribute("x2",px(best.year));
+    $("ch-d1").setAttribute("cx",px(best.year));$("ch-d1").setAttribute("cy",py(best.revenue));
+    $("ch-d2").setAttribute("cx",px(best.year));$("ch-d2").setAttribute("cy",py(best.balance));
+    tip.hidden=false;
+    tip.innerHTML='<div class="ty">'+best.year+'年目・'+best.weather+'</div>'
+      +'<div class="tr"><span>収量</span><b>'+kg(best.kg)+' kg</b></div>'
+      +'<div class="tr"><span>秀品率</span><b>'+(best.kg?pct(best.shuRate)+" %":"—")+'</b></div>'
+      +'<div class="tr"><span>売上</span><b>'+yen(best.revenue)+'</b></div>'
+      +'<div class="tr"><span>収支</span><b>'+yen(best.balance)+'</b></div>';
+    const lx=svgRect.left-wrap.getBoundingClientRect().left+px(best.year)*scale;
+    const tw=tip.offsetWidth;
+    tip.style.left=Math.max(0,Math.min(wrap.clientWidth-tw,lx-tw/2))+"px";
+    tip.style.top="4px";
+  };
+  hit.addEventListener("pointermove",show);
+  hit.addEventListener("pointerdown",show);
+  hit.addEventListener("pointerleave",()=>{tip.hidden=true;cross.setAttribute("opacity","0");});
+}
+
+/* ---- 操作 ---- */
+const PRESETS={
+  std:{thin:"std",fert:"std",pest:"std"},
+  premium:{thin:"fine",fert:"std",pest:"full"},
+  cheap:{thin:"none",fert:"std",pest:"std"}
+};
+function applyPreset(k){
+  const p=PRESETS[k];if(!p)return;
+  state.plots.forEach(pl=>{if(pl.tree)pl.plan={...p};});
+  save();renderAll();
+}
+function spend(n){state.money-=n;state.cum-=n;state.invest=(state.invest||0)+n;}
+function doAct(a){
+  const pl=state.plots[state.sel];
+  if(state.over)return;
+  if(a==="unlock"&&!pl.unlocked&&state.money>=CFG.land){pl.unlocked=true;spend(CFG.land);}
+  if(a==="plant"&&pl.unlocked&&!pl.tree&&state.money>=CFG.sapling){
+    pl.tree={age:1,vigor:68,carry:1};pl.plan={...PRESETS.std};spend(CFG.sapling);
+  }
+  if(a==="fell"&&pl.tree){pl.tree=null;spend(CFG.fellCost);state.extraHours+=CFG.fellHours;}
+  if(a==="applyall"&&pl.tree){const p={...pl.plan};state.plots.forEach(q=>{if(q.tree)q.plan={...p};});}
+  save();renderAll();
+}
+let resetArmed=false;
+function bindOnce(){
+  document.addEventListener("click",e=>{
+    const t=e.target;
+    const plotBtn=t.closest("[data-plot]");
+    if(plotBtn){state.sel=+plotBtn.dataset.plot;save();renderAll();return;}
+    const planBtn=t.closest("[data-plan]");
+    if(planBtn&&!planBtn.disabled){
+      state.plots[state.sel].plan[planBtn.dataset.plan]=planBtn.dataset.val;save();renderAll();return;}
+    const pre=t.closest("[data-preset]");
+    if(pre){applyPreset(pre.dataset.preset);return;}
+    const act=t.closest("[data-act]");
+    if(act&&!act.disabled){doAct(act.dataset.act);return;}
+  });
+  $("advance").addEventListener("click",()=>advanceYear());
+  $("borrow").addEventListener("click",()=>{
+    if(state.loan+CFG.loanUnit>CFG.loanMax)return;
+    state.loan+=CFG.loanUnit;state.money+=CFG.loanUnit;save();renderAll();
+  });
+  $("repay").addEventListener("click",()=>{
+    if(state.loan<CFG.loanUnit||state.money<CFG.loanUnit)return;
+    state.loan-=CFG.loanUnit;state.money-=CFG.loanUnit;save();renderAll();
+  });
+  const rb=$("reset");
+  rb.addEventListener("click",()=>{
+    if(!resetArmed){resetArmed=true;rb.textContent="もう一度押すと1年目に戻ります";
+      setTimeout(()=>{resetArmed=false;rb.textContent="最初から";},4000);return;}
+    resetArmed=false;rb.textContent="最初から";
+    state=newState();try{localStorage.removeItem(SAVE);}catch(e){}
+    save();renderAll();
+  });
+}
+function renderAll(){renderHeader();renderField();renderPanel();renderEstimate();renderReport();renderRecords();}
+
+function boot(data){
+  state=(data&&data.state)||load()||newState();
+  if(state.invest===undefined)state.invest=0;
+  if(state.extraHours===undefined)state.extraHours=0;
+  if(typeof state.sel!=="number"||!state.plots[state.sel])state.sel=0;
+  bindOnce();renderAll();
+}
+const hot=window.claude&&window.claude.hot;
+if(hot&&typeof hot.snapshot==="function"){try{hot.snapshot(()=>({state}));}catch(e){}}
+if(hot&&typeof hot.ready==="function"){hot.ready(boot);}else{boot(hot&&hot.data?hot.data:{});}
+})();
+</script>
