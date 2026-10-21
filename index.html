@@ -246,18 +246,13 @@ tbody tr:last-child td{border-bottom:0}
 
     <section>
       <div class="card">
-        <div class="chead"><h2 id="p-title">A-1 の木</h2><p class="sub" id="p-sub"></p></div>
-        <div id="plotpanel"></div>
+        <div class="chead"><h2>園の管理方針</h2><p class="sub" id="pol-sub">全ての木に適用</p></div>
+        <div id="policy"></div>
       </div>
 
       <div class="card">
-        <div class="chead"><h2>一括設定</h2><p class="sub">全ての木に適用</p></div>
-        <div class="btnrow">
-          <button class="btn" data-preset="std">標準管理</button>
-          <button class="btn" data-preset="premium">秀品重視</button>
-          <button class="btn" data-preset="cheap">省力（摘果なし）</button>
-        </div>
-        <p class="hint">秀品重視は摘果を入念に、防除を徹底します。作業時間が増えるので、自家労力を超えた分の雇用賃金との釣り合いが要点です。</p>
+        <div class="chead"><h2 id="p-title">A-1 の木</h2><p class="sub" id="p-sub"></p></div>
+        <div id="plotpanel"></div>
       </div>
 
       <div class="card">
@@ -288,6 +283,7 @@ const CFG={
   fixedMature:1200, fixedYoung:400, commission:0.12,
   loanUnit:50000, loanMax:600000, loanRate:0.03,
   firstBearing:7, peakAge:20, lastAge:56, peakKg:60, oldKg:40, firstKg:8,
+  harvestHours:5.0, oldPestFrom:35, oldPestMax:1.8, bugChance:0.10,
   price:{shu:470,yu:280,ryo:180,kako:60}
 };
 const THIN={
@@ -336,25 +332,38 @@ function potential(age){
   if(age<=40) return P;
   return P-(P-O)*(age-40)/(l-40);
 }
+/* 老木は樹高が上がり枝が込むため、防除の薬量も手間も増える */
+function pestScale(age){
+  const f=CFG.oldPestFrom;
+  if(age<=f) return 1;
+  return 1+(Math.min(age,CFG.lastAge)-f)/(CFG.lastAge-f)*(CFG.oldPestMax-1);
+}
+/* カメムシ大発生年の被害。防除を怠っているほど壊滅的になる */
+const BUG={none:{y:0.55,l:-45},std:{y:0.88,l:-15},full:{y:0.97,l:-5}};
 function rollWeather(){
   let r=Math.random(),acc=0;
   for(const w of WEATHER){acc+=w.p;if(r<acc)return w;}
   return WEATHER[1];
 }
 function plan(p){return {thin:THIN[p.thin],fert:FERT[p.fert],pest:PEST[p.pest]};}
+/* 原則は園の管理方針に従い、例外を設定した木だけ自分の計画を持つ */
+function planOf(pl){return pl.override||state.policy;}
+function sameAsPolicy(o){return !o||(o.thin===state.policy.thin&&o.fert===state.policy.fert&&o.pest===state.policy.pest);}
+function overrideCount(){return state.plots.filter(pl=>pl.tree&&pl.override).length;}
 
 /* 1区画の収穫を計算する。weather を省略すると平年として見積る。 */
-function harvest(tree,p,weather){
+function harvest(tree,p,weather,bug){
   const w=weather||WEATHER[1], t=plan(p), bearing=tree.age>=CFG.firstBearing&&tree.age<=CFG.lastAge;
   const pot=potential(tree.age);
   if(!bearing||pot<=0) return {yieldKg:0,bearing:false};
+  const b=bug?BUG[p.pest]:{y:1,l:0};
   const vigorMul=0.5+tree.vigor/100*0.62;
-  const yieldKg=pot*vigorMul*t.thin.yieldMul*t.fert.yieldMul*t.pest.yieldMul*w.y*tree.carry;
+  const yieldKg=pot*vigorMul*t.thin.yieldMul*t.fert.yieldMul*t.pest.yieldMul*w.y*tree.carry*b.y;
   let sugar=48+t.thin.sugar+t.fert.sugar+w.s+(tree.vigor-65)*0.18;
   sugar+=tree.age<=9?-6:(tree.age>=45?5:0);
   sugar-=Math.max(0,yieldKg/pot-1)*42;
   sugar=clamp(sugar,5,100);
-  let look=55+t.thin.look+t.fert.look+t.pest.look+w.l+(tree.vigor-65)*0.12;
+  let look=55+t.thin.look+t.fert.look+t.pest.look+w.l+b.l+(tree.vigor-65)*0.12;
   look=clamp(look,0,100);
   const kako=clamp((100-look)/100*0.52+clamp(38-sugar,0,38)/38*0.35+0.02,0.02,0.90);
   const rest=1-kako;
@@ -364,18 +373,18 @@ function harvest(tree,p,weather){
   return {yieldKg,bearing:true,sugar,look,brix:8.8+sugar/100*4.4,
     mix:{shu,yu,ryo:rest2-yu,kako}};
 }
-function plotHours(pl,expectKg){
-  if(!pl.tree) return 0;
-  const t=plan(pl.plan), a=pl.tree.age, bearing=a>=CFG.firstBearing&&a<=CFG.lastAge;
+function plotHours(tree,p,expectKg){
+  if(!tree) return 0;
+  const t=plan(p), a=tree.age, bearing=a>=CFG.firstBearing&&a<=CFG.lastAge;
   let h=a<=1?3.5:(a<CFG.firstBearing?1.5:2.5);
-  h+=t.fert.hours+t.pest.hours;
-  if(bearing){h+=t.thin.hours;h+=expectKg/CFG.peakKg*3.0;}
+  h+=t.fert.hours+t.pest.hours*pestScale(a);
+  if(bearing){h+=t.thin.hours;h+=expectKg/CFG.peakKg*CFG.harvestHours;}
   return h;
 }
-function plotMaterial(pl){
-  if(!pl.tree) return 0;
-  const t=plan(pl.plan), a=pl.tree.age;
-  return t.fert.cost+t.pest.cost+(a>=CFG.firstBearing?CFG.fixedMature:CFG.fixedYoung);
+function plotMaterial(tree,p){
+  if(!tree) return 0;
+  const t=plan(p), a=tree.age;
+  return t.fert.cost+t.pest.cost*pestScale(a)+(a>=CFG.firstBearing?CFG.fixedMature:CFG.fixedYoung);
 }
 
 /* ============ 状態 ============ */
@@ -385,14 +394,14 @@ function newState(){
   CFG.rows.forEach((r,ri)=>{
     for(let c=1;c<=CFG.cols;c++){
       const i=plots.length;
-      plots.push({id:r+"-"+c,unlocked:i<CFG.unlockedAtStart,tree:null,
-        plan:{thin:"std",fert:"std",pest:"std"}});
+      plots.push({id:r+"-"+c,unlocked:i<CFG.unlockedAtStart,tree:null,override:null});
     }
   });
   plots[0].tree={age:12,vigor:78,carry:1};
   plots[1].tree={age:12,vigor:74,carry:1};
   plots[2].tree={age:12,vigor:71,carry:1};
   return {year:1,money:CFG.startMoney,loan:0,cum:0,sel:0,extraHours:0,invest:0,plots,
+    policy:{thin:"std",fert:"std",pest:"std"},
     records:[],last:null,notices:[],over:false,verdict:null};
 }
 const SAVE="mikan-orchard-v1";
@@ -404,6 +413,18 @@ function load(){
     const s=JSON.parse(raw);
     if(!s||!Array.isArray(s.plots)||s.plots.length!==CFG.rows.length*CFG.cols) return null;
     if(!Array.isArray(s.records)) return null;
+    if(!s.policy){
+      const counts={};
+      s.plots.forEach(pl=>{if(pl.tree&&pl.plan){const k=pl.plan.thin+"|"+pl.plan.fert+"|"+pl.plan.pest;
+        counts[k]=(counts[k]||0)+1;}});
+      const best=Object.keys(counts).sort((x,y)=>counts[y]-counts[x])[0];
+      const q=best?best.split("|"):["std","std","std"];
+      s.policy={thin:q[0],fert:q[1],pest:q[2]};
+      s.plots.forEach(pl=>{
+        const o=pl.plan;delete pl.plan;
+        pl.override=(pl.tree&&o&&(o.thin!==s.policy.thin||o.fert!==s.policy.fert||o.pest!==s.policy.pest))?o:null;
+      });
+    }
     return s;
   }catch(e){return null;}
 }
@@ -412,14 +433,18 @@ function load(){
 function advanceYear(){
   if(state.over) return;
   const w=rollWeather(), notices=[];
+  const bug=Math.random()<CFG.bugChance;
   let totalKg=0,brixW=0,hours=state.extraHours,material=0;
   const mix={shu:0,yu:0,ryo:0,kako:0}, perPlot=[];
+  let bugNone=0,bugStd=0;
 
   state.plots.forEach(pl=>{
     if(!pl.tree) return;
-    const h=harvest(pl.tree,pl.plan,w);
-    hours+=plotHours(pl,h.yieldKg);
-    material+=plotMaterial(pl);
+    const pk=planOf(pl);
+    const h=harvest(pl.tree,pk,w,bug);
+    if(bug&&h.bearing){ if(pk.pest==="none") bugNone++; else if(pk.pest==="std") bugStd++; }
+    hours+=plotHours(pl.tree,pk,h.yieldKg);
+    material+=plotMaterial(pl.tree,pk);
     if(h.bearing){
       totalKg+=h.yieldKg; brixW+=h.brix*h.yieldKg;
       GRADES.forEach(g=>{mix[g.k]+=h.yieldKg*h.mix[g.k];});
@@ -432,7 +457,7 @@ function advanceYear(){
   let carryWarn=0,vigorWarn=0;
   state.plots.forEach(pl=>{
     if(!pl.tree) return;
-    const t=plan(pl.plan),a=pl.tree.age,bearing=a>=CFG.firstBearing&&a<=CFG.lastAge;
+    const t=plan(planOf(pl)),a=pl.tree.age,bearing=a>=CFG.firstBearing&&a<=CFG.lastAge;
     let v=pl.tree.vigor+t.fert.vigor+t.pest.vigor+w.v+(bearing?t.thin.vigor:2);
     if(a>=45) v-=1.5;
     if(a<CFG.firstBearing) v+=2;
@@ -442,7 +467,7 @@ function advanceYear(){
     if(pl.tree.vigor<=38) vigorWarn++;
     pl.tree.age++;
     if(pl.tree.age>CFG.lastAge){
-      pl.tree=null; material+=CFG.fellCost; hours+=CFG.fellHours;
+      pl.tree=null; pl.override=null; material+=CFG.fellCost; hours+=CFG.fellHours;
       notices.push({t:"warn",msg:"<b>"+pl.id+"</b> は樹齢"+CFG.lastAge+"年で経済樹齢を終え、伐採しました。同じ場所に改植できます。"});
     }
   });
@@ -461,6 +486,13 @@ function advanceYear(){
   const balance=operating-invest;
   state.money+=operating; state.cum+=operating;
 
+  if(bug){
+    if(bugNone) notices.push({t:"bad",msg:"<b>カメムシが大量に飛来しました。</b>無防除の<b>"+bugNone
+      +"本</b>は吸汁による落果と果皮の斑点で壊滅的な被害を受けました。"});
+    else if(bugStd) notices.push({t:"warn",msg:"<b>カメムシが大量に飛来しました。</b>標準防除の<b>"+bugStd
+      +"本</b>で果面に斑点が残り、等級が落ちています。"});
+    else notices.push({t:"good",msg:"<b>カメムシが大量に飛来しました。</b>徹底防除により被害はほとんどありませんでした。"});
+  }
   if(carryWarn) notices.push({t:"warn",msg:"摘果を省いた<b>"+carryWarn+"本</b>は、来年の着果が大きく落ちます（隔年結果）。"});
   if(vigorWarn) notices.push({t:"bad",msg:"<b>"+vigorWarn+"本</b>で樹勢が低下しています。施肥と防除を見直してください。"});
   if(totalKg>0&&mix.shu/totalKg>=0.45) notices.push({t:"good",msg:"秀品率<b>"+pct(mix.shu/totalKg)+"%</b>。市場で高値がついた年です。"});
@@ -480,7 +512,7 @@ function advanceYear(){
   state.records.push({year:state.year,weather:w.label,kg:totalKg,brix,
     shuRate:totalKg?mix.shu/totalKg:0,unit:totalKg?revenue/totalKg:0,
     revenue,balance,cum:state.cum,market});
-  state.last={w,lines,totalKg,brix,revenue,commission,material,wages,interest,invest,
+  state.last={w,bug,lines,totalKg,brix,revenue,commission,material,wages,interest,invest,
     balance,hours,hired,market,perPlot,notices,year:state.year,
     shuRate:totalKg?mix.shu/totalKg:0};
 
@@ -513,7 +545,7 @@ function treeSVG(pl){
   const cy=95-th-r*0.86, vig=clamp(t.vigor,25,100);
   const op=(0.5+vig/100*0.5).toFixed(2);
   const bearing=t.age>=CFG.firstBearing&&t.age<=CFG.lastAge;
-  const h=bearing?harvest(t,pl.plan,null):null;
+  const h=bearing?harvest(t,planOf(pl),null):null;
   let s='<svg viewBox="0 0 100 104" aria-hidden="true">';
   s+='<rect x="'+(50-1.1-grow*1.2).toFixed(1)+'" y="'+(cy+r*0.5).toFixed(1)+'" width="'+(2.2+grow*2.4).toFixed(1)
     +'" height="'+(95-cy-r*0.5).toFixed(1)+'" fill="#6b4a2d" opacity=".85"/>';
@@ -539,7 +571,7 @@ function plotBadge(pl){
   if(!pl.tree) return '<span class="badge">空き</span>';
   const a=pl.tree.age;
   if(a<CFG.firstBearing) return '<span class="badge b-grow">育成 '+a+'年</span>';
-  if(a>=50) return '<span class="badge b-old">老木 '+a+'年</span>';
+  if(a>=45) return '<span class="badge b-old">老木 '+a+'年</span>';
   return '<span class="badge b-bear">成木 '+a+'年</span>';
 }
 function renderField(){
@@ -549,16 +581,22 @@ function renderField(){
     let foot='';
     if(pl.tree){
       const v=pl.tree.vigor, cls=v<40?'crit':(v<65?'low':'');
-      const t=pl.plan, bearing=pl.tree.age>=CFG.firstBearing;
-      const chip=(label,key,map)=>{
-        const k=t[key];
-        const c=k==="none"?"off":(k==="fine"||k==="full"||k==="much"?"hi":"on");
-        return '<span class="chip '+c+'">'+label+map[k].label+'</span>';
-      };
+      const bearing=pl.tree.age>=CFG.firstBearing;
+      let chips='';
+      if(pl.override){
+        const t=pl.override;
+        const chip=(label,key,map)=>{
+          const k=t[key];
+          const c=k==="none"?"off":(k==="fine"||k==="full"||k==="much"?"hi":"on");
+          return '<span class="chip '+c+'">'+label+map[k].label+'</span>';
+        };
+        chips=(bearing?chip("摘","thin",THIN):"")+chip("肥","fert",FERT)+chip("防","pest",PEST);
+      }else{
+        chips='<span class="chip">方針どおり</span>';
+      }
       foot='<div class="vig"><span>樹勢</span><span class="bar"><i class="'+cls
         +'" style="width:'+v.toFixed(0)+'%"></i></span><span class="num">'+v.toFixed(0)+'</span></div>'
-        +'<div class="chips">'+(bearing?chip("摘","thin",THIN):"")
-        +chip("肥","fert",FERT)+chip("防","pest",PEST)+'</div>';
+        +'<div class="chips">'+chips+'</div>';
     }else{
       foot='<div class="chips"><span class="chip">'+(pl.unlocked?'植え付け可':'開墾 ¥'+CFG.land.toLocaleString("ja-JP"))+'</span></div>';
     }
@@ -578,10 +616,11 @@ function estimate(){
   state.plots.forEach(pl=>{
     if(!pl.tree) return;
     planted++;
-    const h=harvest(pl.tree,pl.plan,null);
+    const pk=planOf(pl);
+    const h=harvest(pl.tree,pk,null);
     if(h.bearing){bearing++;kgEst+=h.yieldKg;}
-    hours+=plotHours(pl,h.yieldKg);
-    material+=plotMaterial(pl);
+    hours+=plotHours(pl.tree,pk,h.yieldKg);
+    material+=plotMaterial(pl.tree,pk);
   });
   const hired=Math.max(0,hours-CFG.familyHours),wages=hired*CFG.wage;
   const interest=state.loan*CFG.loanRate,invest=state.invest||0;
@@ -606,7 +645,7 @@ function renderHeader(){
 /* ---- 1本の作業計画パネル ---- */
 const SEGS=[{key:"thin",label:"摘果",map:THIN,note:"着果量を減らすと糖度と秀品率が上がり、隔年結果も防げます"},
             {key:"fert",label:"施肥",map:FERT,note:"樹勢を保つ要。多肥は樹を大きくしますが粗皮・低糖度に"},
-            {key:"pest",label:"防除",map:PEST,note:"病害虫による傷果を抑え、外観を守ります"}];
+            {key:"pest",label:"防除",map:PEST,note:"病害虫による傷果を抑えます。カメムシの大発生年は無防除だと壊滅します"}];
 function renderPanel(){
   const pl=state.plots[state.sel],el=$("plotpanel");
   $("p-title").textContent=pl.id+" の木";
@@ -626,7 +665,8 @@ function renderPanel(){
     return;
   }
   const t=pl.tree,bearing=t.age>=CFG.firstBearing&&t.age<=CFG.lastAge;
-  const h=harvest(t,pl.plan,null),hrs=plotHours(pl,h.yieldKg||0);
+  const pk=planOf(pl);
+  const h=harvest(t,pk,null),hrs=plotHours(t,pk,h.yieldKg||0);
   sub="樹齢 "+t.age+"年／樹勢 "+t.vigor.toFixed(0)+"／作業 "+hrs.toFixed(1)+"h";
   $("p-sub").textContent=sub;
   if(bearing){
@@ -639,20 +679,50 @@ function renderPanel(){
     html+='<dl class="led"><dt>初結実まで</dt><dd>あと '+Math.max(0,CFG.firstBearing-t.age)+' 年</dd></dl>';
   }
   html+='<div style="height:10px"></div>';
-  SEGS.forEach(sg=>{
-    const cur=pl.plan[sg.key],keys=Object.keys(sg.map);
-    const off=(sg.key==="thin"&&!bearing);
-    html+='<div class="ctl"><label>'+sg.label
-      +'<span>'+(off?"結果樹のみ":(sg.map[cur].cost?yen(sg.map[cur].cost)+"・":"")
-      +sg.map[cur].hours.toFixed(1)+"h")+'</span></label><div class="seg">'
-      +keys.map(k=>'<button type="button" data-plan="'+sg.key+'" data-val="'+k+'" aria-pressed="'
-        +(cur===k?'true':'false')+'"'+(off?' disabled':'')+'>'+sg.map[k].label+'</button>').join("")
-      +'</div></div>';
-  });
-  html+='<p class="hint" style="margin-bottom:10px">'+SEGS.map(s=>s.note)[0]+'。</p>'
-    +'<div class="btnrow"><button class="btn" data-act="applyall">この計画を全ての木に</button>'
-    +'<button class="btn danger" data-act="fell">伐採（'+yen(CFG.fellCost)+'）</button></div>';
+  const ps=pestScale(t.age);
+  if(ps>1.05) html+='<div class="notice warn" style="margin:2px 0 10px">樹高が高く枝が込み合うため、'
+    +'この木の防除は手間・薬量とも <b>'+ps.toFixed(1)+'倍</b> かかります。</div>';
+  if(pl.override){
+    html+=segHTML(pl.override,"plan",bearing,ps)
+      +'<p class="hint" style="margin-bottom:10px">この木だけ園の管理方針から外しています。</p>'
+      +'<div class="btnrow"><button class="btn" data-act="follow">園の方針に戻す</button>'
+      +'<button class="btn danger" data-act="fell">伐採（'+yen(CFG.fellCost)+'）</button></div>';
+  }else{
+    html+='<div class="notice" style="margin-bottom:10px">園の管理方針どおり — '
+      +'摘果 <b>'+THIN[state.policy.thin].label+'</b>／施肥 <b>'+FERT[state.policy.fert].label
+      +'</b>／防除 <b>'+PEST[state.policy.pest].label+'</b></div>'
+      +'<div class="btnrow"><button class="btn" data-act="override">この木だけ別の管理にする</button>'
+      +'<button class="btn danger" data-act="fell">伐採（'+yen(CFG.fellCost)+'）</button></div>';
+  }
   el.innerHTML=html;
+}
+
+/* 摘果・施肥・防除の3段階UI。attr は data-plan（木ごと）か data-pol（園の方針） */
+function segHTML(cur,attr,bearing,ps){
+  return SEGS.map(sg=>{
+    const k=cur[sg.key],keys=Object.keys(sg.map);
+    const off=(sg.key==="thin"&&bearing===false);
+    const sc=sg.key==="pest"?(ps||1):1;
+    const unit=sg.map[k].cost?yen(sg.map[k].cost*sc)+"・":"";
+    return '<div class="ctl"><label>'+sg.label+'<span>'
+      +(off?"結果樹のみ":unit+(sg.map[k].hours*sc).toFixed(1)+"h")+'</span></label><div class="seg">'
+      +keys.map(v=>'<button type="button" data-'+attr+'="'+sg.key+'" data-val="'+v+'" aria-pressed="'
+        +(k===v?'true':'false')+'"'+(off?' disabled':'')+'>'+sg.map[v].label+'</button>').join("")
+      +'</div></div>';
+  }).join("");
+}
+function renderPolicy(){
+  const n=overrideCount(),planted=state.plots.filter(pl=>pl.tree).length;
+  $("pol-sub").textContent=n?(planted-n)+"本に適用・"+n+"本が例外":"全ての木に適用";
+  $("policy").innerHTML=segHTML(state.policy,"pol",true,1)
+    +'<p class="hint" style="margin:2px 0 8px">1本あたりの費用と時間です。防除は老木ほど割増になります。</p>'
+    +'<div class="btnrow">'
+    +'<button class="btn" data-preset="std">標準管理</button>'
+    +'<button class="btn" data-preset="premium">秀品重視</button>'
+    +'<button class="btn" data-preset="cheap">省力（摘果なし）</button></div>'
+    +(n?'<div class="btnrow" style="margin-top:6px"><button class="btn" data-act="clearoverrides">'
+      +'例外にしている'+n+'本を方針に戻す</button></div>':'')
+    +'<p class="hint">秀品重視は摘果を入念に、防除を徹底します。作業時間が増えるので、自家労力を超えた分の雇用賃金との釣り合いが要点です。</p>';
 }
 
 /* ---- 今年の見積り ---- */
@@ -703,7 +773,8 @@ function renderReport(){
   }
   $("r-title").textContent=r.year+"年目の収穫";
   $("r-sub").textContent="市場指数 "+r.market.toFixed(2);
-  let h='<span class="wpill"><b>'+r.w.label+'</b><span class="quiet">'+esc(r.w.note)+'</span></span>';
+  let h='<span class="wpill"><b>'+r.w.label+'</b><span class="quiet">'+esc(r.w.note)+'</span></span>'
+    +(r.bug?' <span class="wpill" style="border-color:var(--bad);color:var(--bad)"><b>カメムシ大発生</b></span>':'');
   h+='<dl class="kpis">'
     +'<div class="kpi"><dt>収量</dt><dd>'+kg(r.totalKg)+'<small>kg</small></dd></div>'
     +'<div class="kpi"><dt>平均糖度</dt><dd>'+(r.totalKg?r.brix.toFixed(1):"—")+'<small>度</small></dd></div>'
@@ -842,7 +913,7 @@ const PRESETS={
 };
 function applyPreset(k){
   const p=PRESETS[k];if(!p)return;
-  state.plots.forEach(pl=>{if(pl.tree)pl.plan={...p};});
+  state.policy={...p};
   save();renderAll();
 }
 function spend(n){state.money-=n;state.cum-=n;state.invest=(state.invest||0)+n;}
@@ -851,10 +922,12 @@ function doAct(a){
   if(state.over)return;
   if(a==="unlock"&&!pl.unlocked&&state.money>=CFG.land){pl.unlocked=true;spend(CFG.land);}
   if(a==="plant"&&pl.unlocked&&!pl.tree&&state.money>=CFG.sapling){
-    pl.tree={age:1,vigor:68,carry:1};pl.plan={...PRESETS.std};spend(CFG.sapling);
+    pl.tree={age:1,vigor:68,carry:1};pl.override=null;spend(CFG.sapling);
   }
-  if(a==="fell"&&pl.tree){pl.tree=null;spend(CFG.fellCost);state.extraHours+=CFG.fellHours;}
-  if(a==="applyall"&&pl.tree){const p={...pl.plan};state.plots.forEach(q=>{if(q.tree)q.plan={...p};});}
+  if(a==="fell"&&pl.tree){pl.tree=null;pl.override=null;spend(CFG.fellCost);state.extraHours+=CFG.fellHours;}
+  if(a==="override"&&pl.tree&&!pl.override) pl.override={...state.policy};
+  if(a==="follow") pl.override=null;
+  if(a==="clearoverrides") state.plots.forEach(q=>{q.override=null;});
   save();renderAll();
 }
 let resetArmed=false;
@@ -863,9 +936,14 @@ function bindOnce(){
     const t=e.target;
     const plotBtn=t.closest("[data-plot]");
     if(plotBtn){state.sel=+plotBtn.dataset.plot;save();renderAll();return;}
+    const polBtn=t.closest("[data-pol]");
+    if(polBtn&&!polBtn.disabled){
+      state.policy[polBtn.dataset.pol]=polBtn.dataset.val;save();renderAll();return;}
     const planBtn=t.closest("[data-plan]");
     if(planBtn&&!planBtn.disabled){
-      state.plots[state.sel].plan[planBtn.dataset.plan]=planBtn.dataset.val;save();renderAll();return;}
+      const pl=state.plots[state.sel];
+      if(!pl.override)pl.override={...state.policy};
+      pl.override[planBtn.dataset.plan]=planBtn.dataset.val;save();renderAll();return;}
     const pre=t.closest("[data-preset]");
     if(pre){applyPreset(pre.dataset.preset);return;}
     const act=t.closest("[data-act]");
@@ -889,7 +967,7 @@ function bindOnce(){
     save();renderAll();
   });
 }
-function renderAll(){renderHeader();renderField();renderPanel();renderEstimate();renderReport();renderRecords();}
+function renderAll(){renderHeader();renderField();renderPolicy();renderPanel();renderEstimate();renderReport();renderRecords();}
 
 function boot(data){
   state=(data&&data.state)||load()||newState();
