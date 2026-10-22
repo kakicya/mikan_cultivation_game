@@ -232,6 +232,11 @@ tbody tr:last-child td{border-bottom:0}
         <div class="chead"><h2>シェアの推移</h2><p class="sub">全国の柑橘産出額に占める自県の割合</p></div>
         <div id="records"></div>
       </div>
+
+      <div class="card">
+        <div class="chead"><h2>この仕事の仕組み</h2><p class="sub">40年の産地づくり</p></div>
+        <div id="howto"></div>
+      </div>
     </section>
 
     <section>
@@ -264,7 +269,7 @@ tbody tr:last-child td{border-bottom:0}
 /* ============ 設定 ============ */
 const CFG={
   runYears:40, baseBudget:320, areaTotal:5000, revPerHa:2.3,
-  startShare:0.042, nationalGrowth:0.0025,
+  startShare:0.042, nationalGrowth:0.0005,
   maxProjects:3, lagYears:5, convertBase:0.060,
   sportBase:0.030
 };
@@ -272,6 +277,11 @@ const GEN=[null,{need:180,years:7},{need:240,years:8},{need:320,years:9},{need:4
 /* 栽培技術は、その品種につぎ込んだ予算の累計の対数で決まる。
    年あたりの伸びには上限があるので、まとめて注ぎ込んでも一息には上がらない */
 const TECH_K=18, TECH_S=11, TECH_MAXRISE=7, TECH_FADE=0.995, AWARE_FADE=0.8;
+/* 産地間の価格競争。どの品種も年々値を下げる。自分で育てた品種は満額から、
+   よそから買ってきた品種はすでに値崩れが始まったところから始まる */
+const PRICE_DECAY=0.982, PRICE_FLOOR=0.55, PRICE_START_MAT=0.85, PRICE_START_OLD=0.78;
+/* 単価が安ければ離農が進み、高ければ少しずつ新植が増える。弱い相関にとどめる */
+const AREA_SENS=0.025, AREA_DOWN=-0.018, AREA_UP=0.012, AREA_MIN=2000, AREA_MAX=8000;
 
 /* 品種。交配・枝変わりとも農研機構および各県の公表資料にもとづく実在の関係 */
 const V={
@@ -406,16 +416,17 @@ const SERIES=["--c1","--c2","--c3","--c4","--c5","--c6","--c7"];
 /* ============ 状態 ============ */
 let state;
 function newState(){
-  const s={year:1,owned:{},area:{},pipe:{},tech:{},aware:{},techCum:{},
+  const s={year:1,owned:{},area:{},pipe:{},tech:{},aware:{},techCum:{},pmul:{},
     alloc:{tech:{},pr:{}},projects:[],imports:[],slots:{},
     national:0,records:[],last:null,over:false,verdict:null,pick:{a:"",b:""}};
-  const init={miyagawa:[2500,55,72],okitsu:[2000,52,66],ponkan:[500,42,38]};
+  const init={miyagawa:[2500,55,72,PRICE_START_OLD],okitsu:[2000,52,66,PRICE_START_OLD],
+    ponkan:[500,42,38,PRICE_START_MAT]};
   Object.keys(init).forEach(id=>{
     s.owned[id]=1; s.area[id]=init[id][0]; s.tech[id]=init[id][1]; s.aware[id]=init[id][2];
-    s.techCum[id]=cumFromTech(id,init[id][1]);
+    s.techCum[id]=cumFromTech(id,init[id][1]); s.pmul[id]=init[id][3];
     s.pipe[id]=new Array(CFG.lagYears).fill(0); s.alloc.tech[id]=0; s.alloc.pr[id]=0;
   });
-  state=s; s.national=output()/CFG.startShare; return s;
+  state=s; s.national=output()/CFG.startShare; s.refPrice=avgPrice(); return s;
 }
 const SAVE="mikan-policy-v2";
 function save(){try{localStorage.setItem(SAVE,JSON.stringify(state));}catch(e){}}
@@ -429,6 +440,15 @@ function load(){
 
 /* ============ 模型 ============ */
 function growable(){return Object.keys(state.owned).filter(id=>V[id]&&V[id].grow);}
+function pmulOf(id){const v=state.pmul&&state.pmul[id];return v==null?1:v;}
+function priceOf(id){return V[id].price*pmulOf(id);}
+/* 知名度が単価に効く幅は、品種の格によって違う。温州のような日常の品種は
+   知られていても値が跳ねないが、優良品種は認知されてはじめて高値がつく */
+function awFactor(id){
+  const prem=clamp((V[id].price-1.0)/2.5,0,1);
+  const span=0.35+prem*0.55;
+  return (1-span*0.45)+effAware(id)/100*span;
+}
 function techDiff(id){return 1+(V[id].req||0)/80;}
 function techFromCum(id,cum){return Math.min(100,TECH_K*Math.log(1+Math.max(0,cum)/(TECH_S*techDiff(id))));}
 function cumFromTech(id,t){return TECH_S*techDiff(id)*(Math.exp(t/TECH_K)-1);}
@@ -451,8 +471,7 @@ function output(){
     const t=state.tech[id]||0;
     const ty=0.65+t/100*0.75;
     const q=v.req?(t>=v.req?1:0.60+t/v.req*0.40):1;
-    const aw=0.70+effAware(id)/100*0.55;
-    o+=ar*CFG.revPerHa*v.yld*v.price*ty*q*aw;
+    o+=ar*CFG.revPerHa*v.yld*priceOf(id)*ty*q*awFactor(id);
   });
   return o;
 }
@@ -462,7 +481,38 @@ function appeal(id){
   const v=V[id],t=state.tech[id]||0,a=effAware(id),need=v.req||1;
   if(v.req&&t<v.req*0.6) return 0.02;
   const tf=clamp(t/need,0,1.25),af=0.25+a/100*1.15;
-  return v.price*v.yld*tf*af;
+  return priceOf(id)*v.yld*tf*af;
+}
+/* 面積加重の実効単価。着任時を1.0とした比で面積が動く */
+function avgPrice(){
+  let a=0,w=0;
+  growable().forEach(id=>{const ar=state.area[id]||0;if(ar<=0)return;
+    w+=ar; a+=ar*priceOf(id)*awFactor(id);});
+  return w>0?a/w:0;
+}
+function totalArea(){return growable().reduce((s,id)=>s+(state.area[id]||0)+pipeSum(id),0);}
+function adjustTotalArea(){
+  const ref=state.refPrice||1, r=avgPrice()/ref;
+  const g=clamp((r-1)*AREA_SENS,AREA_DOWN,AREA_UP);
+  const cur=totalArea();
+  let delta=cur*g;
+  if(cur+delta<AREA_MIN) delta=AREA_MIN-cur;
+  if(cur+delta>AREA_MAX) delta=AREA_MAX-cur;
+  if(Math.abs(delta)<0.01) return 0;
+  if(delta<0){
+    /* 離農は条件の悪い園から先に出る */
+    let need=-delta;
+    const ids=growable().filter(id=>(state.area[id]||0)>0).sort((a,b)=>appeal(a)-appeal(b));
+    for(const id of ids){
+      const take=Math.min(state.area[id],need);
+      state.area[id]-=take; need-=take;
+      if(need<=0.01) break;
+    }
+    return -( -delta-need );
+  }
+  const ids=growable().slice().sort((a,b)=>appeal(b)-appeal(a));
+  if(ids.length) pipeOf(ids[0])[CFG.lagYears-1]+=delta;
+  return delta;
 }
 function convertRate(){
   const ids=growable(); let ar=0,tw=0,aw=0;
@@ -537,6 +587,9 @@ function advanceYear(){
     const target=techFromCum(id,state.techCum[id]);
     state.tech[id]=clamp(Math.min(target,(state.tech[id]||0)+TECH_MAXRISE),0,100);
   });
+  growable().forEach(id=>{
+    state.pmul[id]=Math.max(PRICE_FLOOR,pmulOf(id)*PRICE_DECAY);
+  });
   const pf=prefAware();
   growable().forEach(id=>{
     const c=state.alloc.pr[id]||0;
@@ -583,6 +636,7 @@ function advanceYear(){
 
   const came=advancePipes();
   const moved=convertAreas();
+  const land=adjustTotalArea();
   state.national*=1+CFG.nationalGrowth+(Math.random()-0.5)*0.006;
   const sh=share();
 
@@ -596,6 +650,10 @@ function advanceYear(){
       +"<b>「"+v.n+"」</b>です。"+esc(v.note)+"　交配ではないので、育種予算はかかりません。"});});
   if(came>1) notices.push({t:"good",msg:"5年前に改植した <b>"+ha(came)
     +"ha</b> が結果樹になりました。"});
+  if(land<-1) notices.push({t:"warn",msg:"単価の安さに耐えかねて、<b>"+ha(-land)
+    +"ha</b> が離農しました。条件の悪い園地から順に手放されています。"});
+  else if(land>1) notices.push({t:"good",msg:"単価が戻り、<b>"+ha(land)
+    +"ha</b> の新植が入りました。結果樹になるのは"+CFG.lagYears+"年後です。"});
   if(sh<before.share) notices.push({t:"warn",msg:"他県も産地づくりを進めています。手を止めるとシェアは下がります。"});
   const stuck=growable().filter(id=>V[id].req&&(state.tech[id]||0)<V[id].req*0.6
     &&(state.area[id]||0)+pipeSum(id)<5);
@@ -605,17 +663,17 @@ function advanceYear(){
   state.records.push({year:state.year,share:sh,output:output(),budget:p.budget,
     pref:prefAware(),varieties:growable().length,
     bred:growable().filter(id=>V[id].gen||V[id].sport).length});
-  state.last={year:state.year,notices,p,before,after:{share:sh,pref:prefAware()},came,moved};
+  state.last={year:state.year,notices,p,before,after:{share:sh,pref:prefAware()},came,moved,land};
   state.year++;
   fitAllocation();
 
   if(state.year>CFG.runYears&&!state.verdict){
     const s=sh*100;
     const t=[[6.0,"秀","全国に知られる産地","シェア "+s.toFixed(2)+"%。品種・栽培技術・知名度が噛み合い、産地の形が変わりました。"],
-             [5.2,"優","確かな前進","シェア "+s.toFixed(2)+"%。育てた品種が産地に根づきました。"],
-             [4.5,"良","着実な積み上げ","シェア "+s.toFixed(2)+"%。品種を増やすか、栽培技術を厚くするか、もう一手ありました。"],
-             [4.2,"並","現状維持","シェア "+s.toFixed(2)+"%。他県の伸びに対して、辛うじて踏みとどまりました。"]]
-      .find(x=>s>=x[0])||[0,"—","産地の後退","シェア "+s.toFixed(2)+"%。予算が分散し、どの品種も産地になりませんでした。"];
+             [5.0,"優","確かな前進","シェア "+s.toFixed(2)+"%。新しい品種が産地に根づき、値崩れを上回りました。"],
+             [4.2,"良","着任時のシェアを守った","シェア "+s.toFixed(2)+"%。品種は年々値を下げます。そのなかで守り切ったのは健闘です。"],
+             [3.5,"並","やや後退","シェア "+s.toFixed(2)+"%。更新が値崩れに追いつきませんでした。"]]
+      .find(x=>s>=x[0])||[0,"—","産地の後退","シェア "+s.toFixed(2)+"%。古い品種を作り続けるあいだに、産地が細りました。"];
     state.verdict={rank:t[1],title:t[2],body:t[3]};
     state.over=true;
   }
@@ -648,6 +706,8 @@ function acquire(id){
   let t=0; par.forEach(pid=>{t=Math.max(t,(state.tech[pid]||0)*rate);});
   state.owned[id]=1; state.area[id]=0; state.aware[id]=0;
   state.tech[id]=t; state.techCum[id]=cumFromTech(id,t);
+  if(!state.pmul)state.pmul={};
+  state.pmul[id]=v.mat?PRICE_START_MAT:1;
   state.pipe[id]=new Array(CFG.lagYears).fill(0);
   state.alloc.tech[id]=0; state.alloc.pr[id]=0;
   return t;
@@ -701,7 +761,7 @@ function renderVarieties(){
     const v=V[id],ar=state.area[id]||0,t=state.tech[id]||0,aw=state.aware[id]||0;
     const ea=effAware(id),pipe=pipeSum(id),sp=sportChance(id);
     const ty=0.65+t/100*0.75,q=v.req?(t>=v.req?1:0.60+t/v.req*0.40):1;
-    const o=ar*CFG.revPerHa*v.yld*v.price*ty*q*(0.70+ea/100*0.55);
+    const o=ar*CFG.revPerHa*v.yld*priceOf(id)*ty*q*awFactor(id);
     const cold=v.req&&t<v.req*0.6;
     const origin=v.cross?v.cross.map(c=>V[c].n).join(" × ")
       :(v.sport?V[v.sport].n+" の枝変わり":(v.orig||"在来"));
@@ -718,9 +778,11 @@ function renderVarieties(){
       +'<input type="range" data-p="'+id+'" min="0" max="120" step="5" value="'
         +(state.alloc.pr[id]||0)+'">'
       +'<div class="money"><span>消費者PR</span><span>'+(state.alloc.pr[id]||0)+'百万円</span></div>'
-      +'<div class="vfoot"><span>単価 '+v.price.toFixed(2)+'</span>'
+      +'<div class="vfoot"><span>単価 '+priceOf(id).toFixed(2)
+      +(pmulOf(id)<0.995?' <span class="neg">('+((1-pmulOf(id))*100).toFixed(0)+'%安)</span>':'')+'</span>'
       +(v.req?'<span class="'+(t<v.req?"neg":"")+'">必要技術 '+v.req+'</span>':'')
       +'<span>実効認知 '+ea.toFixed(0)+'</span>'
+      +'<span>認知による単価 ×'+awFactor(id).toFixed(2)+'</span>'
       +'<span>技術の頭打ち '+techFromCum(id,state.techCum[id]||0).toFixed(0)+'</span>'
       +'<span>産出額 '+ha(o)+'</span>'
       +(sp>0?'<span>枝変わり '+(sp*100).toFixed(1)+'%</span>':'')+'</div>'
@@ -799,7 +861,7 @@ function renderImports(){
       return '<div class="vc"><div class="vhead"><span class="vt">'+esc(v.n)+'</span></div>'
         +'<p class="vsub">'+esc(v.note)+'</p>'
         +'<div class="money"><span>'+v.cost+'百万円</span><span>'+v.lead+'年</span></div>'
-        +'<div class="money"><span>単価 '+v.price.toFixed(2)+'・収量 '+v.yld.toFixed(2)
+        +'<div class="money"><span>単価 '+(v.price*PRICE_START_MAT).toFixed(2)+'・収量 '+v.yld.toFixed(2)
         +'</span><span>必要技術 '+(v.req||"—")+'</span></div>'
         +'<button class="btn" style="margin-top:5px" data-act="import" data-id="'+id
         +'">導入する</button></div>';}).join("")+'</div>';
@@ -811,30 +873,44 @@ function arrow(a,b,d){
   if(Math.abs(v)<0.005) return '<span class="quiet">±0</span>';
   return '<span class="'+(v<0?"neg":"")+'">'+(v>0?"+":"")+v.toFixed(d||1)+'</span>';
 }
+function renderHowto(){
+  $("howto").innerHTML='<p class="quiet">あなたは県の果樹振興係です。40年かけて、自県の柑橘を'
+    +'全国のなかでどこまで押し上げられるかが問われます。使えるのは年度予算だけで、繰り越せません。</p>'
+    +'<div class="notice"><b>品種ごと</b>に、栽培技術と消費者認知を育てます。'
+    +'新品種は知名度ゼロから始まり、必要技術の6割に届くまで産地はだれも植えません。'
+    +'ただし栽培知見は親から引き継がれます。親を育てておくほど、子の立ち上がりが速くなります。</div>'
+    +'<div class="notice"><b>栽培技術は、その品種に注ぎ込んだ予算の累計の対数で決まります。</b>'
+    +'最初の100百万円でおよそ40まで上がりますが、そこから先は倍々で積まないと動きません。'
+    +'年に上がるのは最大'+TECH_MAXRISE+'までなので、まとめて注いでも一息には上がりません。'
+    +'単価の高い品種ほど、同じ水準に届くまでに多くを要します。</div>'
+    +'<div class="notice"><b>消費者認知には相乗効果があります。</b>県全体の知名度が上がるほど、'
+    +'新しい品種の認知も立ち上がりやすくなります。主力品種のPRは、次の品種への投資でもあります。'
+    +'認知が下がるのは年'+AWARE_FADE+'とゆるやかです。</div>'
+    +'<div class="notice"><b>優良品種は、知られてはじめて高値がつきます。</b>'
+    +'認知度が単価に効く幅は品種の格で違い、温州のような日常の品種は知られていても'
+    +'1.19倍どまりですが、最上級の品種は無名なら0.59倍、しっかり認知させれば1.45倍になります。'
+    +'高い品種ほどPRを怠ると値がつきません。</div>'
+    +'<div class="notice"><b>産地間の価格競争で、どの品種も年1.8%ずつ値を下げます。</b>'
+    +'古い品種を作り続けるだけでは産地は細ります。自分で育種した品種と園地で見つけた枝変わりは'
+    +'満額から始まりますが、よそから導入した品種はすでに15%安いところから始まります。</div>'
+    +'<div class="notice"><b>県内の栽培面積も単価に反応します。</b>'
+    +'平均単価が着任時を下回ると離農が進み、条件の悪い園地から順に手放されます。'
+    +'単価が上向けば少しずつ新植が入りますが、結果樹になるのは'+CFG.lagYears+'年後です。</div>'
+    +'<div class="notice"><b>改植は'+CFG.lagYears+'年遅れて効きます。</b>伐採はすぐ面積が減り、'
+    +'植えた分が結果樹になるのは'+CFG.lagYears+'年後です。</div>'
+    +'<div class="notice"><b>育種は、いま持っている品種の組合せでしか始められません。</b>'
+    +'どの素材を先に導入するかで、十数年先に手に入る品種が決まります。'
+    +'有望な組合せかはその場で分かりますが、何が生まれるかは成功するまで分かりません。</div>'
+    +'<p class="hint">評価は40年目のシェアで決まります。秀6.0%／優5.0%／良4.2%／並3.5%。'
+    +'良の基準が着任時のシェアです。品種は年々値を下げるので、守るだけでも更新が要ります。</p>';
+}
 function renderReport(){
   const el=$("report"),r=state.last;
   if(!r){
-    $("r-title").textContent="今年度の方針";
+    $("r-title").textContent="年度の結果";
     $("r-sub").textContent=state.year+"年目・着任";
-    el.innerHTML='<p class="quiet">あなたは県の果樹振興係です。40年かけて、自県の柑橘を'
-      +'全国のなかでどこまで押し上げられるかが問われます。使えるのは年度予算だけで、繰り越せません。</p>'
-      +'<div class="notice"><b>品種ごと</b>に、栽培技術と消費者認知を育てます。'
-      +'新品種は知名度ゼロから始まり、必要技術の6割に届くまで産地はだれも植えません。'
-      +'ただし栽培知見は親から引き継がれます。親を育てておくほど、子の立ち上がりが速くなります。</div>'
-      +'<div class="notice"><b>栽培技術は、その品種に注ぎ込んだ予算の累計の対数で決まります。</b>'
-      +'最初の100百万円でおよそ40まで上がりますが、そこから先は倍々で積まないと動きません。'
-      +'年に上がるのは最大'+TECH_MAXRISE+'までなので、まとめて注いでも一息には上がりません。'
-      +'単価の高い品種ほど、同じ水準に届くまでに多くを要します。</div>'
-      +'<div class="notice"><b>消費者認知は年'+AWARE_FADE+'ずつしか下がりません。</b>'
-      +'上げるのは重いぶん、一度つけた知名度は長く残ります。</div>'
-      +'<div class="notice"><b>消費者認知には相乗効果があります。</b>県全体の知名度が上がるほど、'
-      +'新しい品種の認知も立ち上がりやすくなります。主力品種のPRは次の品種への投資でもあります。</div>'
-      +'<div class="notice"><b>改植は'+CFG.lagYears+'年遅れて効きます。</b>伐採はすぐ面積が減り、'
-      +'植えた分が結果樹になるのは'+CFG.lagYears+'年後です。技術と認知がそろっている品種ほど、産地は速く広がります。</div>'
-      +'<div class="notice"><b>枝変わりは園地で偶然見つかります。</b>栽培面積が広いほど、'
-      +'またその品種の栽培技術が高いほど見つかりやすく、育種予算はかかりません。'
-      +'温州みかんの主要品種の多くは、この偶然から生まれました。</div>'
-      +'<p class="hint">全国の柑橘産出額は年0.25%ほど伸びています。手を止めれば、それだけでシェアは下がります。</p>';
+    el.innerHTML='<p class="quiet">予算を配り、1年目を終えると、ここに結果が出ます。'
+      +'仕組みはページのいちばん下にまとめてあります。</p>';
     return;
   }
   $("r-title").textContent=r.year+"年度の結果";
@@ -846,6 +922,8 @@ function renderReport(){
       +arrow(r.before.pref,r.after.pref)+'</small></dd></div>'
     +'<div class="kpi"><dt>結果化</dt><dd>'+ha(r.came)+'<small>ha</small></dd></div>'
     +'<div class="kpi"><dt>改植</dt><dd>'+ha(r.moved)+'<small>ha</small></dd></div>'
+    +'<div class="kpi"><dt>'+((r.land||0)<0?"離農":"新植")+'</dt><dd class="'+((r.land||0)<0?"neg":"")
+      +'">'+ha(Math.abs(r.land||0))+'<small>ha</small></dd></div>'
     +'</dl>'
     +'<dl class="led"><dt>栽培技術</dt><dd>'+yen(r.p.tech)+'</dd></dl>'
     +'<dl class="led"><dt>消費者PR</dt><dd>'+yen(r.p.pr)+'</dd></dl>'
@@ -952,7 +1030,7 @@ function readouts(){
 }
 function renderAll(){
   renderHeader();renderComposition();renderVarieties();renderAlloc();
-  renderBreeding();renderImports();renderReport();renderRecords();readouts();
+  renderBreeding();renderImports();renderReport();renderRecords();renderHowto();readouts();
 }
 let resetArmed=false;
 function bindOnce(){
@@ -1006,6 +1084,9 @@ function boot(data){
   if(s)state=s; else newState();
   if(!state.pick)state.pick={a:"",b:""};
   if(!state.slots)state.slots={};
+  if(!state.pmul)state.pmul={};
+  if(!state.refPrice)state.refPrice=avgPrice()||1;
+  growable().forEach(id=>{if(state.pmul[id]==null)state.pmul[id]=V[id].mat?PRICE_START_MAT:1;});
   if(!state.techCum)state.techCum={};
   growable().forEach(id=>{if(state.techCum[id]==null)state.techCum[id]=cumFromTech(id,state.tech[id]||0);});
   if(!state.alloc||!state.alloc.tech)state.alloc={tech:{},pr:{}};
