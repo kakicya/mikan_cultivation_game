@@ -276,12 +276,12 @@ const CFG={
 const GEN=[null,{need:180,years:7},{need:240,years:8},{need:320,years:9},{need:420,years:11}];
 /* 栽培技術は、その品種につぎ込んだ予算の累計の対数で決まる。
    年あたりの伸びには上限があるので、まとめて注ぎ込んでも一息には上がらない */
-const TECH_K=18, TECH_S=11, TECH_MAXRISE=7, TECH_FADE=0.995, AWARE_FADE=0.8;
+const TECH_K=18, TECH_S=6, TECH_MAXRISE=9, TECH_FADE=0.995, AWARE_FADE=0.8;
 /* 産地間の価格競争。どの品種も年々値を下げる。自分で育てた品種は満額から、
    よそから買ってきた品種はすでに値崩れが始まったところから始まる */
 const PRICE_DECAY=0.982, PRICE_FLOOR=0.55, PRICE_START_MAT=0.85, PRICE_START_OLD=0.78;
 /* 単価が安ければ離農が進み、高ければ少しずつ新植が増える。弱い相関にとどめる */
-const AREA_SENS=0.025, AREA_DOWN=-0.018, AREA_UP=0.012, AREA_MIN=2000, AREA_MAX=8000;
+const AREA_SENS=0.030, AREA_DOWN=-0.018, AREA_UP=0.022, AREA_MIN=2000, AREA_MAX=13000;
 
 /* 品種。交配・枝変わりとも農研機構および各県の公表資料にもとづく実在の関係 */
 const V={
@@ -446,10 +446,10 @@ function priceOf(id){return V[id].price*pmulOf(id);}
    知られていても値が跳ねないが、優良品種は認知されてはじめて高値がつく */
 function awFactor(id){
   const prem=clamp((V[id].price-1.0)/2.5,0,1);
-  const span=0.35+prem*0.55;
+  const span=0.35+prem*0.75;
   return (1-span*0.45)+effAware(id)/100*span;
 }
-function techDiff(id){return 1+(V[id].req||0)/80;}
+function techDiff(id){return 1+(V[id].req||0)/120;}
 function techFromCum(id,cum){return Math.min(100,TECH_K*Math.log(1+Math.max(0,cum)/(TECH_S*techDiff(id))));}
 function cumFromTech(id,t){return TECH_S*techDiff(id)*(Math.exp(t/TECH_K)-1);}
 function pipeOf(id){return state.pipe[id]||(state.pipe[id]=new Array(CFG.lagYears).fill(0));}
@@ -469,7 +469,7 @@ function output(){
   growable().forEach(id=>{
     const v=V[id],ar=state.area[id]||0; if(ar<=0) return;
     const t=state.tech[id]||0;
-    const ty=0.65+t/100*0.75;
+    const ty=0.62+t/100*0.95;
     const q=v.req?(t>=v.req?1:0.60+t/v.req*0.40):1;
     o+=ar*CFG.revPerHa*v.yld*priceOf(id)*ty*q*awFactor(id);
   });
@@ -669,10 +669,10 @@ function advanceYear(){
 
   if(state.year>CFG.runYears&&!state.verdict){
     const s=sh*100;
-    const t=[[6.0,"秀","全国に知られる産地","シェア "+s.toFixed(2)+"%。品種・栽培技術・知名度が噛み合い、産地の形が変わりました。"],
-             [5.0,"優","確かな前進","シェア "+s.toFixed(2)+"%。新しい品種が産地に根づき、値崩れを上回りました。"],
-             [4.2,"良","着任時のシェアを守った","シェア "+s.toFixed(2)+"%。品種は年々値を下げます。そのなかで守り切ったのは健闘です。"],
-             [3.5,"並","やや後退","シェア "+s.toFixed(2)+"%。更新が値崩れに追いつきませんでした。"]]
+    const t=[[9.0,"秀","全国を代表する産地","シェア "+s.toFixed(2)+"%。品種・栽培技術・知名度が噛み合い、産地の形が変わりました。"],
+             [7.0,"優","確かな前進","シェア "+s.toFixed(2)+"%。新しい品種が産地に根づき、値崩れを大きく上回りました。"],
+             [5.0,"良","着実な積み上げ","シェア "+s.toFixed(2)+"%。更新が値崩れに勝ちました。集中を強めれば、もう一段伸びます。"],
+             [4.2,"並","着任時のシェアを守った","シェア "+s.toFixed(2)+"%。品種は年々値を下げます。そのなかで守り切ったのは健闘です。"]]
       .find(x=>s>=x[0])||[0,"—","産地の後退","シェア "+s.toFixed(2)+"%。古い品種を作り続けるあいだに、産地が細りました。"];
     state.verdict={rank:t[1],title:t[2],body:t[3]};
     state.over=true;
@@ -760,7 +760,7 @@ function renderVarieties(){
   $("varieties").innerHTML=ids.map(id=>{
     const v=V[id],ar=state.area[id]||0,t=state.tech[id]||0,aw=state.aware[id]||0;
     const ea=effAware(id),pipe=pipeSum(id),sp=sportChance(id);
-    const ty=0.65+t/100*0.75,q=v.req?(t>=v.req?1:0.60+t/v.req*0.40):1;
+    const ty=0.62+t/100*0.95,q=v.req?(t>=v.req?1:0.60+t/v.req*0.40):1;
     const o=ar*CFG.revPerHa*v.yld*priceOf(id)*ty*q*awFactor(id);
     const cold=v.req&&t<v.req*0.6;
     const origin=v.cross?v.cross.map(c=>V[c].n).join(" × ")
@@ -880,7 +880,7 @@ function renderHowto(){
     +'新品種は知名度ゼロから始まり、必要技術の6割に届くまで産地はだれも植えません。'
     +'ただし栽培知見は親から引き継がれます。親を育てておくほど、子の立ち上がりが速くなります。</div>'
     +'<div class="notice"><b>栽培技術は、その品種に注ぎ込んだ予算の累計の対数で決まります。</b>'
-    +'最初の100百万円でおよそ40まで上がりますが、そこから先は倍々で積まないと動きません。'
+    +'最初の50百万円でおよそ40、100百万円で52まで上がりますが、そこから先は倍々で積まないと動きません。'
     +'年に上がるのは最大'+TECH_MAXRISE+'までなので、まとめて注いでも一息には上がりません。'
     +'単価の高い品種ほど、同じ水準に届くまでに多くを要します。</div>'
     +'<div class="notice"><b>消費者認知には相乗効果があります。</b>県全体の知名度が上がるほど、'
@@ -888,7 +888,7 @@ function renderHowto(){
     +'認知が下がるのは年'+AWARE_FADE+'とゆるやかです。</div>'
     +'<div class="notice"><b>優良品種は、知られてはじめて高値がつきます。</b>'
     +'認知度が単価に効く幅は品種の格で違い、温州のような日常の品種は知られていても'
-    +'1.19倍どまりですが、最上級の品種は無名なら0.59倍、しっかり認知させれば1.45倍になります。'
+    +'1.19倍どまりですが、最上級の品種は無名なら0.51倍、しっかり認知させれば1.61倍になります。'
     +'高い品種ほどPRを怠ると値がつきません。</div>'
     +'<div class="notice"><b>産地間の価格競争で、どの品種も年1.8%ずつ値を下げます。</b>'
     +'古い品種を作り続けるだけでは産地は細ります。自分で育種した品種と園地で見つけた枝変わりは'
@@ -901,8 +901,9 @@ function renderHowto(){
     +'<div class="notice"><b>育種は、いま持っている品種の組合せでしか始められません。</b>'
     +'どの素材を先に導入するかで、十数年先に手に入る品種が決まります。'
     +'有望な組合せかはその場で分かりますが、何が生まれるかは成功するまで分かりません。</div>'
-    +'<p class="hint">評価は40年目のシェアで決まります。秀6.0%／優5.0%／良4.2%／並3.5%。'
-    +'良の基準が着任時のシェアです。品種は年々値を下げるので、守るだけでも更新が要ります。</p>';
+    +'<p class="hint">評価は40年目のシェアで決まります。秀9.0%／優7.0%／良5.0%／並4.2%。'
+    +'並の基準が着任時のシェアです。品種は年々値を下げるので、守るだけでも更新が要ります。'
+    +'技術とPRを1品種に絞るほど伸びます。</p>';
 }
 function renderReport(){
   const el=$("report"),r=state.last;
