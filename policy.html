@@ -281,11 +281,12 @@ const V={
     note:"宮川早生の珠心胚実生から選抜された早生温州。"},
   owari:{n:"尾張温州",k:"普通温州",grow:1,yld:1.10,price:0.90,req:0,
     note:"晩生の普通温州。温州みかんの基本系統。"},
-  miho:{n:"三保早生",k:"早生温州",grow:1,yld:1.00,price:0.96,req:0,
-    note:"早生温州のひとつ。"},
+
   ponkan:{n:"ポンカン",k:"中晩柑",grow:1,yld:0.80,price:1.25,req:15,
     note:"インド原産。香りが高く、タンゴール育種の重要な父本。"},
 
+  miho:{n:"三保早生",k:"素材",mat:1,cost:30,lead:1,
+    note:"早生温州のひとつ。南香の母本として知られる。"},
   trovita:{n:"トロビタオレンジ",k:"素材",mat:1,cost:60,lead:2,
     note:"スイートオレンジ。日本のタンゴール育種はこの父本から始まった。"},
   clementine:{n:"クレメンティン",k:"素材",mat:1,cost:70,lead:2,
@@ -331,8 +332,17 @@ const V={
     yld:0.88,price:2.40,req:50,real:"1972年交雑",
     note:"デコポンの名で知られる。果頂部の凸が目印。"},
   harumi:{n:"はるみ",k:"タンゴール",grow:1,gen:2,cross:["kiyomi","ponkan"],
-    yld:0.86,price:2.00,req:45,real:"不知火と同じ組合せの別個体",
+    yld:0.86,price:2.00,req:45,real:"1999年登録・不知火と同じ組合せ",
     note:"果肉がやわらかく、じょうのうごと食べられる。"},
+  haruki:{n:"はるき",k:"タンゴール",grow:1,gen:2,cross:["kiyomi","ponkan"],
+    yld:0.80,price:2.20,req:52,real:"和歌山県果樹試験場・清見×中野3号ポンカン",
+    note:"3月に熟す中晩柑。遅くまで樹上に置ける。"},
+  yoko:{n:"陽香",k:"タンゴール",grow:1,gen:2,cross:["kiyomi","ponkan"],
+    yld:0.84,price:2.10,req:48,real:"清見×ポンカンの一系統",
+    note:"清見とポンカンの組合せから選ばれた系統のひとつ。"},
+  setomi:{n:"せとみ",k:"タンゴール",grow:1,gen:2,cross:["kiyomi","ponkan"],
+    yld:0.82,price:2.50,req:58,real:"1981年交雑・2004年登録（山口県）",
+    note:"ブランド名は「ゆめほっぺ」。大玉で、じょうのうごと食べられる。"},
   himekoharu:{n:"媛小春",k:"タンゴール",grow:1,gen:2,cross:["kiyomi","ogon"],
     yld:0.72,price:1.90,req:48,real:"2008年登録",
     note:"黄金柑ゆずりの香り。小果で収量は多くない。"},
@@ -375,8 +385,8 @@ function newState(){
   const s={year:1,owned:{},area:{},pipe:{},tech:{},aware:{},techCum:{},
     alloc:{tech:{},pr:{}},projects:[],imports:[],slots:{},
     national:0,records:[],last:null,over:false,verdict:null,pick:{a:"",b:""}};
-  const init={miyagawa:[1800,55,72],okitsu:[1200,52,66],owari:[1200,50,60],
-    miho:[300,48,58],ponkan:[500,42,38]};
+  const init={miyagawa:[1900,55,72],okitsu:[1300,52,66],owari:[1300,50,60],
+    ponkan:[500,42,38]};
   Object.keys(init).forEach(id=>{
     s.owned[id]=1; s.area[id]=init[id][0]; s.tech[id]=init[id][1]; s.aware[id]=init[id][2];
     s.techCum[id]=cumFromTech(id,init[id][1]);
@@ -519,8 +529,10 @@ function advanceYear(){
       const prob=0.25+Math.min(0.35,(pj.cum/g.need-1)*0.45);
       if(Math.random()<prob){
         const rem=crossRemaining(pj.a,pj.b);
-        if(rem.length){acquire(rem[0]);pj.done=rem[0];newV.push(rem[0]);}
-        else pj.done="none";
+        if(rem.length){
+          const got=rem[Math.floor(Math.random()*rem.length)];
+          acquire(got);pj.done=got;newV.push(got);
+        }else pj.done="none";
       }
     }
   });
@@ -739,7 +751,8 @@ function renderBreeding(){
   else if(a&&b&&rem.length){
     const g=GEN[projectGen(a,b)];
     verdict='<div class="notice good">有望な組合せです。最短 <b>'+g.years+'年</b>・累計 <b>'
-      +g.need+'百万円</b> が目安です。</div>';
+      +g.need+'百万円</b> が目安です。この組合せからは、まだ <b>'+rem.length
+      +'系統</b> が期待できます'+(rem.length>1?'。どれが選抜されるかは分かりません':'')+'。</div>';
     can=state.projects.length<CFG.maxProjects;
   }else if(a&&b&&outs.length) verdict='<div class="notice warn">この組合せからは、すでに系統を得ています。</div>';
   else if(a&&b) verdict='<div class="notice">この組合せから有望な個体は期待できません。</div>';
