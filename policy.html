@@ -299,6 +299,8 @@ const V={
     note:"米国育成のタンゴール。多汁で無核性を伝える。"},
   ogon:{n:"黄金柑",k:"素材",mat:1,cost:50,lead:2,
     note:"小果の在来柑橘。さわやかな香りをもつ。"},
+  hyuganatsu:{n:"日向夏",k:"素材",mat:1,cost:50,lead:2,
+    note:"宮崎原産。白い内皮ごと食べる独特の柑橘。さわやかな酸味を子に伝える。"},
 
   /* 枝変わりで現れる品種 */
   yura:{n:"ゆら早生",k:"極早生温州",grow:1,sport:"miyagawa",yld:0.85,price:1.40,req:35,
@@ -313,6 +315,12 @@ const V={
     real:"2006年・鹿児島県農家登録",note:"不知火の枝変わり。果皮と果肉の橙色がより濃い。"},
 
   /* 交雑育種で得られる品種 */
+  awaorange:{n:"阿波オレンジ",k:"タンゴール",grow:1,gen:1,cross:["hyuganatsu","trovita"],
+    yld:0.78,price:1.55,req:32,real:"1981年命名・徳島県果樹試験場の育成第1号",
+    note:"小ぶりだが糖度が高く、皮がむきやすい。貯蔵後も味が落ちにくい。"},
+  himenotsuki:{n:"ひめのつき",k:"タンゴール",grow:1,gen:1,cross:["encore","hyuganatsu"],
+    yld:0.80,price:1.70,req:40,real:"2006年登録（愛媛県）",
+    note:"やや扁平。甘みは中くらいで、しっかりした酸味とさっぱりした風味。"},
   kiyomi:{n:"清見",k:"タンゴール",grow:1,gen:1,cross:["miyagawa","trovita"],
     yld:0.88,price:1.50,req:30,real:"1949年交配・1979年登録",
     note:"日本初のタンゴール。以後の品種のほとんどがここから派生する。"},
