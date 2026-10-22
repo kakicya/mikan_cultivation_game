@@ -241,7 +241,7 @@ tbody tr:last-child td{border-bottom:0}
       </div>
 
       <div class="card">
-        <div class="chead"><h2>遺伝資源の導入</h2><p class="sub">交配に使う素材を導入する</p></div>
+        <div class="chead"><h2>遺伝資源の導入</h2><p class="sub">交配の親にも、そのまま栽培にも使える</p></div>
         <div id="imports"></div>
       </div>
 
@@ -279,38 +279,45 @@ const V={
     note:"県内の主力。1925年に福岡で在来温州の枝変わりとして見出された。"},
   okitsu:{n:"興津早生",k:"早生温州",grow:1,yld:1.06,price:0.98,req:0,
     note:"宮川早生の珠心胚実生から選抜された早生温州。"},
-  owari:{n:"尾張温州",k:"普通温州",grow:1,yld:1.10,price:0.90,req:0,
-    note:"晩生の普通温州。温州みかんの基本系統。"},
 
   ponkan:{n:"ポンカン",k:"中晩柑",grow:1,yld:0.80,price:1.25,req:15,
     note:"インド原産。香りが高く、タンゴール育種の重要な父本。"},
 
-  miho:{n:"三保早生",k:"素材",mat:1,cost:30,lead:1,
+  miho:{n:"三保早生",k:"早生温州",mat:1,grow:1,cost:30,lead:1,orig:"在来",
+    yld:1.00,price:0.96,req:0,
     note:"早生温州のひとつ。南香の母本として知られる。"},
-  trovita:{n:"トロビタオレンジ",k:"素材",mat:1,cost:60,lead:2,
-    note:"スイートオレンジ。日本のタンゴール育種はこの父本から始まった。"},
-  clementine:{n:"クレメンティン",k:"素材",mat:1,cost:70,lead:2,
-    note:"地中海のマンダリン。早熟で種が少ない。"},
-  encore:{n:"アンコール",k:"素材",mat:1,cost:80,lead:3,
-    note:"米国育成の晩生マンダリン。濃厚な食味を子に伝える。"},
-  marcott:{n:"マーコット",k:"素材",mat:1,cost:80,lead:3,
-    note:"米国育成。高糖度で果皮が薄い。"},
-  page:{n:"ページ",k:"素材",mat:1,cost:70,lead:2,
-    note:"米国育成のタンゴール。多汁で無核性を伝える。"},
-  ogon:{n:"黄金柑",k:"素材",mat:1,cost:50,lead:2,
-    note:"小果の在来柑橘。さわやかな香りをもつ。"},
-  hyuganatsu:{n:"日向夏",k:"素材",mat:1,cost:50,lead:2,
-    note:"宮崎原産。白い内皮ごと食べる独特の柑橘。さわやかな酸味を子に伝える。"},
+  trovita:{n:"トロビタオレンジ",k:"オレンジ",mat:1,grow:1,cost:60,lead:2,orig:"米国育成",
+    yld:0.70,price:1.20,req:60,
+    note:"スイートオレンジ。日本のタンゴール育種はこの父本から始まった。日本では作りにくい。"},
+  clementine:{n:"クレメンティン",k:"マンダリン",mat:1,grow:1,cost:70,lead:2,orig:"地中海",
+    yld:0.72,price:1.30,req:55,
+    note:"地中海のマンダリン。早熟で種が少ないが、日本の気候には合わせにくい。"},
+  encore:{n:"アンコール",k:"マンダリン",mat:1,grow:1,cost:80,lead:3,orig:"米国育成",
+    yld:0.70,price:1.90,req:58,
+    note:"米国育成の晩生マンダリン。濃厚な食味を子に伝える。それ自体も高値がつく。"},
+  marcott:{n:"マーコット",k:"マンダリン",mat:1,grow:1,cost:80,lead:3,orig:"米国育成",
+    yld:0.72,price:1.85,req:60,
+    note:"米国育成。高糖度で果皮が薄いが、種が多く浮皮も出やすい。"},
+  page:{n:"ページ",k:"タンゴール",mat:1,grow:1,cost:70,lead:2,orig:"米国育成",
+    yld:0.75,price:1.40,req:55,
+    note:"米国育成のタンゴール。多汁で無核性を伝える。小果で収量は多くない。"},
+  ogon:{n:"黄金柑",k:"雑柑",mat:1,grow:1,cost:50,lead:2,orig:"在来",
+    yld:0.55,price:1.80,req:45,
+    note:"小果の在来柑橘。さわやかな香りをもち、希少さで高値がつく。"},
+  hyuganatsu:{n:"日向夏",k:"雑柑",mat:1,grow:1,cost:50,lead:2,orig:"宮崎原産",
+    yld:0.85,price:1.35,req:30,
+    note:"白い内皮ごと食べる独特の柑橘。産地の看板になりうる。"},
 
   /* 枝変わりで現れる品種 */
   yura:{n:"ゆら早生",k:"極早生温州",grow:1,sport:"miyagawa",yld:0.85,price:1.40,req:35,
     real:"1985年・和歌山県由良町",note:"宮川早生の枝変わり。極早生としては糖度が高い。"},
   ueno:{n:"上野早生",k:"早生温州",grow:1,sport:"miyagawa",yld:1.00,price:1.18,req:28,
     real:"佐賀県",note:"宮川早生の枝変わり。着色が早く浮皮が出にくい。"},
+  obarabeni:{n:"小原紅早生",k:"早生温州",grow:1,sport:"miyagawa",yld:0.85,price:1.55,req:40,
+    real:"1973年発見・1993年登録（香川県坂出市）",
+    note:"宮川早生の枝変わり。温州みかんでもっとも果皮が紅い。見た目で高く売れる。"},
   nichinan:{n:"日南1号",k:"極早生温州",grow:1,sport:"okitsu",yld:0.95,price:1.22,req:30,
     real:"宮崎県",note:"興津早生の枝変わり。極早生の主力となった。"},
-  aoshima:{n:"青島温州",k:"普通温州",grow:1,sport:"owari",yld:1.08,price:1.28,req:35,
-    real:"静岡市・青島平十氏",note:"尾張系温州の枝変わり。大果で貯蔵性に富む。"},
   daimasaki:{n:"大将季",k:"タンゴール",grow:1,sport:"shiranui",yld:0.85,price:2.70,req:55,
     real:"2006年・鹿児島県農家登録",note:"不知火の枝変わり。果皮と果肉の橙色がより濃い。"},
 
@@ -393,8 +400,7 @@ function newState(){
   const s={year:1,owned:{},area:{},pipe:{},tech:{},aware:{},techCum:{},
     alloc:{tech:{},pr:{}},projects:[],imports:[],slots:{},
     national:0,records:[],last:null,over:false,verdict:null,pick:{a:"",b:""}};
-  const init={miyagawa:[1900,55,72],okitsu:[1300,52,66],owari:[1300,50,60],
-    ponkan:[500,42,38]};
+  const init={miyagawa:[2500,55,72],okitsu:[2000,52,66],ponkan:[500,42,38]};
   Object.keys(init).forEach(id=>{
     s.owned[id]=1; s.area[id]=init[id][0]; s.tech[id]=init[id][1]; s.aware[id]=init[id][2];
     s.techCum[id]=cumFromTech(id,init[id][1]);
@@ -560,8 +566,9 @@ function advanceYear(){
 
   state.imports.forEach(i=>{i.fresh=false;i.left--;});
   state.imports.filter(i=>i.left<=0).forEach(i=>{
-    state.owned[i.id]=1;
-    notices.push({t:"good",msg:"育種素材 <b>"+V[i.id].n+"</b> を導入しました。"+esc(V[i.id].note)});
+    acquire(i.id);
+    notices.push({t:"good",msg:"<b>"+V[i.id].n+"</b> を導入しました。"+esc(V[i.id].note)
+      +"　交配の親に使えるほか、そのまま栽培もできます。"});
   });
   state.imports=state.imports.filter(i=>i.left>0);
 
@@ -688,7 +695,7 @@ function renderVarieties(){
     const o=ar*CFG.revPerHa*v.yld*v.price*ty*q*(0.70+ea/100*0.55);
     const cold=v.req&&t<v.req*0.6;
     const origin=v.cross?v.cross.map(c=>V[c].n).join(" × ")
-      :(v.sport?V[v.sport].n+" の枝変わり":"在来");
+      :(v.sport?V[v.sport].n+" の枝変わり":(v.orig||"在来"));
     return '<div class="vc '+(ar>0?"on":"")+(cold?" cold":"")+'">'
       +'<div class="vhead"><span class="vt">'+esc(v.n)+'</span>'
       +'<span class="varea">'+ha(ar)+' ha'+(pipe>1?' <span class="pipe">+'+ha(pipe)+'</span>':'')+'</span></div>'
@@ -783,6 +790,8 @@ function renderImports(){
       return '<div class="vc"><div class="vhead"><span class="vt">'+esc(v.n)+'</span></div>'
         +'<p class="vsub">'+esc(v.note)+'</p>'
         +'<div class="money"><span>'+v.cost+'百万円</span><span>'+v.lead+'年</span></div>'
+        +'<div class="money"><span>単価 '+v.price.toFixed(2)+'・収量 '+v.yld.toFixed(2)
+        +'</span><span>必要技術 '+(v.req||"—")+'</span></div>'
         +'<button class="btn" style="margin-top:5px" data-act="import" data-id="'+id
         +'">導入する</button></div>';}).join("")+'</div>';
   else if(!state.imports.length) h='<p class="quiet">導入できる素材はすべて手に入れました。</p>';
