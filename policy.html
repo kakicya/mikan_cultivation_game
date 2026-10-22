@@ -171,6 +171,30 @@ tbody tr:last-child td{border-bottom:0}
   @keyframes fi{from{opacity:.45}to{opacity:1}}
 }
 </style>
+<style>
+/* 品種カード中心の画面。1品種＝1カードで、栽培技術と消費者認知に予算を配る */
+.vg{display:grid;grid-template-columns:repeat(auto-fill,minmax(282px,1fr));gap:9px}
+.vc{border:1px solid var(--line);background:var(--surface-2);padding:9px 11px;min-width:0;
+  border-left:3px solid var(--line-strong)}
+.vc.on{border-left-color:var(--accent)}
+.vc.cold{opacity:.9;border-left-style:dashed}
+.vhead{display:flex;align-items:baseline;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.vt{font-family:var(--display);font-size:1rem}
+.varea{font-variant-numeric:tabular-nums;font-size:.78rem;color:var(--ink-2)}
+.vsub{font-size:.67rem;color:var(--ink-3);margin:1px 0 6px;word-break:break-word}
+.gauge2{display:grid;grid-template-columns:5.8em 1fr 2.6em;align-items:center;gap:6px;
+  font-size:.7rem;color:var(--ink-2);margin-top:5px}
+.gauge2 .track{height:6px;background:var(--sunk);position:relative;overflow:hidden}
+.gauge2 .track i{display:block;height:100%}
+.gauge2 .track u{position:absolute;top:0;bottom:0;width:2px;background:var(--bad);text-decoration:none}
+.gauge2 b{font-weight:400;font-variant-numeric:tabular-nums;text-align:right;font-family:var(--display)}
+.vc input[type=range]{margin:1px 0 0}
+.money{font-size:.68rem;color:var(--ink-3);display:flex;justify-content:space-between;gap:6px}
+.vfoot{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:.66rem;color:var(--ink-3);margin-top:6px;
+  padding-top:5px;border-top:1px dotted var(--line)}
+.vfoot span{font-variant-numeric:tabular-nums}
+.pipe{font-size:.66rem;color:var(--accent)}
+</style>
 
 <header>
   <div class="hwrap">
@@ -181,16 +205,11 @@ tbody tr:last-child td{border-bottom:0}
     <dl class="stats">
       <div class="stat"><dt>年度</dt><dd id="s-year">1<small>年目 / 40</small></dd></div>
       <div class="stat share"><dt>全国シェア</dt><dd id="s-share">4.20<small>%</small></dd></div>
-      <div class="stat"><dt>当初予算</dt><dd id="s-budget">150<small>百万円</small></dd>
+      <div class="stat"><dt>当初予算</dt><dd id="s-budget">0<small>/320百万円</small></dd>
         <div class="meter"><i id="m-budget" class="a" style="width:0%"></i></div></div>
-      <div class="stat"><dt>職員工数</dt><dd id="s-staff">0<small>/100</small></dd>
-        <div class="meter"><i id="m-staff" style="width:0%"></i></div></div>
-      <div class="stat"><dt>知事の関心</dt><dd id="s-gov">35</dd>
-        <div class="meter"><i id="m-gov" style="width:35%"></i></div></div>
-      <div class="stat"><dt>消費者認知</dt><dd id="s-aware">22</dd>
-        <div class="meter"><i id="m-aware" class="a" style="width:22%"></i></div></div>
-      <div class="stat"><dt>栽培技術</dt><dd id="s-tech">30</dd>
-        <div class="meter"><i id="m-tech" style="width:30%"></i></div></div>
+      <div class="stat"><dt>県全体の認知</dt><dd id="s-pref">0</dd>
+        <div class="meter"><i id="m-pref" style="width:0%"></i></div></div>
+      <div class="stat"><dt>栽培品種</dt><dd id="s-count">5<small>品種</small></dd></div>
     </dl>
   </div>
 </header>
@@ -199,13 +218,9 @@ tbody tr:last-child td{border-bottom:0}
   <div class="cols">
     <section>
       <div class="card">
-        <div class="chead"><h2>県内の作付構成</h2><p class="sub" id="area-sub"></p></div>
+        <div class="chead"><h2>品種と産地</h2><p class="sub" id="v-sub"></p></div>
         <div id="composition"></div>
-      </div>
-
-      <div class="card">
-        <div class="chead"><h2>保有品種と育種素材</h2><p class="sub" id="v-sub"></p></div>
-        <div class="vgrid" id="varieties"></div>
+        <div class="vg" id="varieties" style="margin-top:11px"></div>
       </div>
 
       <div class="card" id="report-card">
@@ -221,22 +236,19 @@ tbody tr:last-child td{border-bottom:0}
 
     <section>
       <div class="card">
-        <div class="chead"><h2>今年度予算の配分</h2><p class="sub" id="alloc-sub"></p></div>
-        <div id="alloc"></div>
-      </div>
-
-      <div class="card">
         <div class="chead"><h2>育種事業</h2><p class="sub" id="breed-sub"></p></div>
         <div id="breeding"></div>
       </div>
 
       <div class="card">
-        <div class="chead"><h2>遺伝資源の導入</h2><p class="sub">育種素材を他機関から導入する</p></div>
+        <div class="chead"><h2>遺伝資源の導入</h2><p class="sub">交配に使う素材を導入する</p></div>
         <div id="imports"></div>
       </div>
 
       <div class="card">
-        <button class="btn primary" id="advance">1年目を終える</button>
+        <div class="chead"><h2>今年度予算</h2><p class="sub" id="alloc-sub"></p></div>
+        <div id="alloc"></div>
+        <button class="btn primary" id="advance" style="margin-top:10px">1年目を終える</button>
         <div class="btnrow" style="margin-top:7px">
           <button class="btn" id="reset">最初から</button>
         </div>
@@ -251,25 +263,29 @@ tbody tr:last-child td{border-bottom:0}
 
 /* ============ 設定 ============ */
 const CFG={
-  runYears:40, baseBudget:150, staff:100, areaTotal:5000, revPerHa:2.3,
-  startShare:0.042, nationalGrowth:0.006,
-  convertRate:0.025, maxProjects:3,
-  breedStaff:4, techStaff:10, importStaff:6
+  runYears:40, baseBudget:320, areaTotal:5000, revPerHa:2.3,
+  startShare:0.042, nationalGrowth:0.0025,
+  maxProjects:3, lagYears:5, convertBase:0.060,
+  sportBase:0.030
 };
-/* 育種の世代ごとの難度。必要累積予算（百万円）と最短年数 */
-const GEN=[null,
-  {need:340,years:10},{need:460,years:11},{need:600,years:12},{need:760,years:14}];
+const GEN=[null,{need:180,years:7},{need:240,years:8},{need:320,years:9},{need:420,years:11}];
+/* 栽培技術は、その品種につぎ込んだ予算の累計の対数で決まる。
+   年あたりの伸びには上限があるので、まとめて注ぎ込んでも一息には上がらない */
+const TECH_K=18, TECH_S=11, TECH_MAXRISE=7, TECH_FADE=0.995, AWARE_FADE=0.8;
 
-/* 品種。交配は農研機構・各県の公表資料にもとづく実在の組合せ */
+/* 品種。交配・枝変わりとも農研機構および各県の公表資料にもとづく実在の関係 */
 const V={
-  miyagawa:{n:"宮川早生",k:"温州",grow:1,yld:1.00,price:1.00,req:0,
-    note:"県内の主力。早生温州の代表品種。"},
-  okitsu:{n:"興津早生",k:"温州",grow:1,yld:1.06,price:0.98,req:0,
+  miyagawa:{n:"宮川早生",k:"早生温州",grow:1,yld:1.00,price:1.00,req:0,
+    note:"県内の主力。1925年に福岡で在来温州の枝変わりとして見出された。"},
+  okitsu:{n:"興津早生",k:"早生温州",grow:1,yld:1.06,price:0.98,req:0,
     note:"宮川早生の珠心胚実生から選抜された早生温州。"},
-  miho:{n:"三保早生",k:"温州",grow:1,yld:1.00,price:0.96,req:0,
+  owari:{n:"尾張温州",k:"普通温州",grow:1,yld:1.10,price:0.90,req:0,
+    note:"晩生の普通温州。温州みかんの基本系統。"},
+  miho:{n:"三保早生",k:"早生温州",grow:1,yld:1.00,price:0.96,req:0,
     note:"早生温州のひとつ。"},
-  ponkan:{n:"ポンカン",k:"中晩柑",grow:1,yld:0.80,price:1.25,req:10,
+  ponkan:{n:"ポンカン",k:"中晩柑",grow:1,yld:0.80,price:1.25,req:15,
     note:"インド原産。香りが高く、タンゴール育種の重要な父本。"},
+
   trovita:{n:"トロビタオレンジ",k:"素材",mat:1,cost:60,lead:2,
     note:"スイートオレンジ。日本のタンゴール育種はこの父本から始まった。"},
   clementine:{n:"クレメンティン",k:"素材",mat:1,cost:70,lead:2,
@@ -283,6 +299,19 @@ const V={
   ogon:{n:"黄金柑",k:"素材",mat:1,cost:50,lead:2,
     note:"小果の在来柑橘。さわやかな香りをもつ。"},
 
+  /* 枝変わりで現れる品種 */
+  yura:{n:"ゆら早生",k:"極早生温州",grow:1,sport:"miyagawa",yld:0.85,price:1.40,req:35,
+    real:"1985年・和歌山県由良町",note:"宮川早生の枝変わり。極早生としては糖度が高い。"},
+  ueno:{n:"上野早生",k:"早生温州",grow:1,sport:"miyagawa",yld:1.00,price:1.18,req:28,
+    real:"佐賀県",note:"宮川早生の枝変わり。着色が早く浮皮が出にくい。"},
+  nichinan:{n:"日南1号",k:"極早生温州",grow:1,sport:"okitsu",yld:0.95,price:1.22,req:30,
+    real:"宮崎県",note:"興津早生の枝変わり。極早生の主力となった。"},
+  aoshima:{n:"青島温州",k:"普通温州",grow:1,sport:"owari",yld:1.08,price:1.28,req:35,
+    real:"静岡市・青島平十氏",note:"尾張系温州の枝変わり。大果で貯蔵性に富む。"},
+  daimasaki:{n:"大将季",k:"タンゴール",grow:1,sport:"shiranui",yld:0.85,price:2.70,req:55,
+    real:"2006年・鹿児島県農家登録",note:"不知火の枝変わり。果皮と果肉の橙色がより濃い。"},
+
+  /* 交雑育種で得られる品種 */
   kiyomi:{n:"清見",k:"タンゴール",grow:1,gen:1,cross:["miyagawa","trovita"],
     yld:0.88,price:1.50,req:30,real:"1949年交配・1979年登録",
     note:"日本初のタンゴール。以後の品種のほとんどがここから派生する。"},
@@ -327,129 +356,161 @@ const V={
     note:"南香に天草を交雑。ゼリーのような果肉で、産地の顔になる。"}
 };
 const CKEY=(a,b)=>[a,b].sort().join("|");
-const CROSS={};
-Object.keys(V).forEach(id=>{if(V[id].cross){const k=CKEY(V[id].cross[0],V[id].cross[1]);
-  (CROSS[k]=CROSS[k]||[]).push(id);}});
-
-const PR=[{label:"なし",cost:0,staff:0,gain:0},
-          {label:"小",cost:35,staff:14,gain:1},
-          {label:"中",cost:80,staff:28,gain:2},
-          {label:"大",cost:150,staff:46,gain:3}];
-const GOVPR=[{label:"なし",cost:0,staff:0,gain:0},
-             {label:"小",cost:2,staff:12,gain:8},
-             {label:"中",cost:6,staff:26,gain:16},
-             {label:"大",cost:12,staff:44,gain:26}];
+const CROSS={},SPORT={};
+Object.keys(V).forEach(id=>{
+  if(V[id].cross){const k=CKEY(V[id].cross[0],V[id].cross[1]);(CROSS[k]=CROSS[k]||[]).push(id);}
+  if(V[id].sport){(SPORT[V[id].sport]=SPORT[V[id].sport]||[]).push(id);}
+});
 
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const yen=n=>Math.round(n).toLocaleString("ja-JP")+"百万円";
+const ha=n=>Math.round(n).toLocaleString("ja-JP");
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
-const SERIES=["--c1","--c2","--c3","--c4","--c5","--c6","--c7","--c8"];
+const SERIES=["--c1","--c2","--c3","--c4","--c5","--c6","--c7"];
 
 /* ============ 状態 ============ */
 let state;
 function newState(){
-  const owned={miyagawa:1,okitsu:1,miho:1,ponkan:1};
-  const area={miyagawa:2500,okitsu:1500,miho:500,ponkan:500};
-  const s={year:1,owned,area,tech:30,aware:22,gov:35,techStreak:0,
-    alloc:{tech:40,pr:1,govpr:1},projects:[],imports:[],
-    national:0,records:[],last:null,over:false,verdict:null,
-    pick:{a:"",b:""}};
+  const s={year:1,owned:{},area:{},pipe:{},tech:{},aware:{},techCum:{},
+    alloc:{tech:{},pr:{}},projects:[],imports:[],slots:{},
+    national:0,records:[],last:null,over:false,verdict:null,pick:{a:"",b:""}};
+  const init={miyagawa:[1800,55,72],okitsu:[1200,52,66],owari:[1200,50,60],
+    miho:[300,48,58],ponkan:[500,42,38]};
+  Object.keys(init).forEach(id=>{
+    s.owned[id]=1; s.area[id]=init[id][0]; s.tech[id]=init[id][1]; s.aware[id]=init[id][2];
+    s.techCum[id]=cumFromTech(id,init[id][1]);
+    s.pipe[id]=new Array(CFG.lagYears).fill(0); s.alloc.tech[id]=0; s.alloc.pr[id]=0;
+  });
   state=s; s.national=output()/CFG.startShare; return s;
 }
-const SAVE="mikan-policy-v1";
+const SAVE="mikan-policy-v2";
 function save(){try{localStorage.setItem(SAVE,JSON.stringify(state));}catch(e){}}
 function load(){
   try{
     const s=JSON.parse(localStorage.getItem(SAVE)||"null");
-    if(!s||!s.owned||!s.area||!Array.isArray(s.records)||!Array.isArray(s.projects)) return null;
+    if(!s||!s.owned||!s.area||!s.tech||!s.aware||!Array.isArray(s.records)) return null;
     return s;
   }catch(e){return null;}
 }
 
 /* ============ 模型 ============ */
 function growable(){return Object.keys(state.owned).filter(id=>V[id]&&V[id].grow);}
-function techMul(){return 0.75+state.tech/100*0.5;}
-function awareMul(){return 0.75+state.aware/100*0.5;}
+function techDiff(id){return 1+(V[id].req||0)/80;}
+function techFromCum(id,cum){return Math.min(100,TECH_K*Math.log(1+Math.max(0,cum)/(TECH_S*techDiff(id))));}
+function cumFromTech(id,t){return TECH_S*techDiff(id)*(Math.exp(t/TECH_K)-1);}
+function pipeOf(id){return state.pipe[id]||(state.pipe[id]=new Array(CFG.lagYears).fill(0));}
+function pipeSum(id){return pipeOf(id).reduce((a,b)=>a+b,0);}
+/* 県全体の認知。主力品種の知名度が他の品種を引き上げる */
+function prefAware(){
+  let s=0,a=0;
+  growable().forEach(id=>{const ar=state.area[id]||0;s+=ar;a+=ar*(state.aware[id]||0);});
+  return s>0?a/s:0;
+}
+function effAware(id){
+  const own=state.aware[id]||0,pf=prefAware();
+  return clamp(Math.max(own,pf*0.55)+pf*0.15,0,100);
+}
 function output(){
   let o=0;
   growable().forEach(id=>{
-    const v=V[id],a=state.area[id]||0;
-    if(a<=0) return;
-    const ok=state.tech>=v.req?1:0.55;
-    const aw=v.k==="温州"?1:awareMul();
-    o+=a*CFG.revPerHa*v.yld*v.price*techMul()*ok*aw;
+    const v=V[id],ar=state.area[id]||0; if(ar<=0) return;
+    const t=state.tech[id]||0;
+    const ty=0.65+t/100*0.75;
+    const q=v.req?(t>=v.req?1:0.60+t/v.req*0.40):1;
+    const aw=0.70+effAware(id)/100*0.55;
+    o+=ar*CFG.revPerHa*v.yld*v.price*ty*q*aw;
   });
   return o;
 }
 function share(){return state.national>0?output()/state.national:0;}
-/* 品種の普及しやすさ。技術が足りないと産地は動かない */
+/* 産地が植えたくなる度合い。栽培法が確立していない品種は誰も植えない */
 function appeal(id){
-  const v=V[id];
-  if(state.tech<v.req) return v.price*0.06;
-  const aw=v.k==="温州"?1:(0.55+state.aware/100*0.75);
-  return v.price*v.yld*aw;
+  const v=V[id],t=state.tech[id]||0,a=effAware(id),need=v.req||1;
+  if(v.req&&t<v.req*0.6) return 0.02;
+  const tf=clamp(t/need,0,1.25),af=0.25+a/100*1.15;
+  return v.price*v.yld*tf*af;
 }
+function convertRate(){
+  const ids=growable(); let ar=0,tw=0,aw=0;
+  ids.forEach(id=>{const a=state.area[id]||0;ar+=a;tw+=a*(state.tech[id]||0);aw+=a*effAware(id);});
+  const t=ar?tw/ar:0,a=ar?aw/ar:0;
+  return CFG.convertBase*(0.20+t/100*0.55+a/100*0.45);
+}
+/* 改植は結果樹になるまで数年かかる。減る分はすぐ、増える分は遅れて効く */
 function convertAreas(){
   const ids=growable();
-  if(!ids.length) return 0;
-  const ap=ids.map(id=>Math.pow(appeal(id),2.2));
+  const total=ids.reduce((s,id)=>s+(state.area[id]||0)+pipeSum(id),0)||CFG.areaTotal;
+  const ap=ids.map(id=>Math.pow(appeal(id),2.6));
   const sum=ap.reduce((a,b)=>a+b,0)||1;
-  const target={}; ids.forEach((id,i)=>target[id]=CFG.areaTotal*ap[i]/sum);
-  const move=CFG.areaTotal*CFG.convertRate*(0.7+state.tech/100*0.6);
+  const target={}; ids.forEach((id,i)=>target[id]=total*ap[i]/sum);
+  const move=total*convertRate();
   const def=[],sur=[];
-  ids.forEach(id=>{const cur=state.area[id]||0,d=target[id]-cur;
-    if(d>0)def.push([id,d]);else sur.push([id,-d]);});
-  const dsum=def.reduce((a,x)=>a+x[1],0),ssum=sur.reduce((a,x)=>a+x[1],0);
-  const amt=Math.min(move,dsum,ssum);
+  ids.forEach(id=>{
+    const cur=(state.area[id]||0)+pipeSum(id),d=target[id]-cur;
+    if(d>0)def.push([id,d]); else if(-d>0&&(state.area[id]||0)>0)sur.push([id,Math.min(-d,state.area[id])]);
+  });
+  const ds=def.reduce((a,x)=>a+x[1],0),ss=sur.reduce((a,x)=>a+x[1],0);
+  const amt=Math.min(move,ds,ss);
   if(amt<=0.01) return 0;
-  def.forEach(([id,d])=>{state.area[id]=(state.area[id]||0)+amt*d/dsum;});
-  sur.forEach(([id,s])=>{state.area[id]=(state.area[id]||0)-amt*s/ssum;});
+  sur.forEach(([id,s])=>{state.area[id]=Math.max(0,(state.area[id]||0)-amt*s/ss);});
+  def.forEach(([id,d])=>{const p=pipeOf(id);p[CFG.lagYears-1]+=amt*d/ds;});
   return amt;
 }
+function advancePipes(){
+  let came=0;
+  growable().forEach(id=>{
+    const p=pipeOf(id);
+    came+=p[0]; state.area[id]=(state.area[id]||0)+p[0];
+    for(let i=0;i<p.length-1;i++) p[i]=p[i+1];
+    p[p.length-1]=0;
+  });
+  return came;
+}
+/* 枝変わりは園地で偶然見つかる。面積が広いほど、技術が高いほど見つかりやすい */
+function sportChance(id){
+  const list=SPORT[id]; if(!list||!list.some(s=>!state.owned[s])) return 0;
+  const ar=state.area[id]||0,t=state.tech[id]||0;
+  return CFG.sportBase*(ar/800)*(0.5+t/100*0.5);
+}
 function budgetOf(){
-  const g=1+(share()-CFG.startShare)/CFG.startShare*0.5;
-  return Math.max(60,Math.round(CFG.baseBudget*g*(0.55+state.gov/100*0.95)));
+  const g=1+(share()-CFG.startShare)/CFG.startShare*0.6;
+  return Math.max(80,Math.round(CFG.baseBudget*g));
 }
 function crossOutcomes(a,b){return (a&&b&&a!==b)?(CROSS[CKEY(a,b)]||[]):[];}
 function crossRemaining(a,b){return crossOutcomes(a,b).filter(id=>!state.owned[id]);}
-function projectGen(a,b){
-  const outs=crossOutcomes(a,b);
-  return outs.length?V[outs[0]].gen:0;
-}
-/* 今年度の支出と工数 */
+function projectGen(a,b){const o=crossOutcomes(a,b);return o.length?V[o[0]].gen:0;}
 function plan(){
   const b=budgetOf();
-  const pr=PR[state.alloc.pr]||PR[0], gp=GOVPR[state.alloc.govpr]||GOVPR[0];
+  let tech=0,pr=0;
+  growable().forEach(id=>{tech+=state.alloc.tech[id]||0;pr+=state.alloc.pr[id]||0;});
   let breed=0; state.projects.forEach(p=>breed+=p.budget);
   const imp=state.imports.filter(i=>i.fresh).reduce((a,i)=>a+V[i.id].cost,0);
-  const cost=state.alloc.tech+breed+pr.cost+gp.cost+imp;
-  const staff=(state.alloc.tech>0?CFG.techStaff:0)+state.projects.length*CFG.breedStaff
-    +pr.staff+gp.staff+state.imports.filter(i=>i.fresh).length*CFG.importStaff;
-  return {budget:b,tech:state.alloc.tech,breed,imp,pr,gp,cost,staff,
-    left:b-cost,overBudget:Math.max(0,cost-b),overStaff:Math.max(0,staff-CFG.staff)};
+  const cost=tech+pr+breed+imp;
+  return {budget:b,tech,pr,breed,imp,cost,left:b-cost,over:Math.max(0,cost-b)};
 }
 
 /* ============ 年度を終える ============ */
 function advanceYear(){
   if(state.over) return;
-  const p=plan();
-  if(p.overBudget>0||p.overStaff>0) return;
-  const notices=[],before={tech:state.tech,aware:state.aware,gov:state.gov,share:share()};
-  const newV=[];
-  let govGain=p.gp.gain;
+  const p=plan(); if(p.over>0) return;
+  const notices=[],before={share:share(),pref:prefAware()};
+  const newV=[],sports=[];
 
-  if(state.alloc.tech>0){
-    state.techStreak++;
-    const bonus=1+Math.min(0.5,state.techStreak*0.05);
-    state.tech=clamp(state.tech+3.2*Math.sqrt(state.alloc.tech/40)*(1-state.tech/115)*bonus,0,100);
-  }else{
-    state.techStreak=0;
-    state.tech=clamp(state.tech-0.6,0,100);
-  }
-  if(p.pr.cost>0) state.aware=clamp(state.aware+4.5*Math.sqrt(p.pr.cost/30)*(1-state.aware/100),0,100);
-  state.aware=clamp(state.aware-1.2,0,100);
-  state.gov=clamp(state.gov-7,0,100);
+  growable().forEach(id=>{
+    const c=state.alloc.tech[id]||0;
+    if(c>0) state.techCum[id]=(state.techCum[id]||0)+c;
+    else state.techCum[id]=(state.techCum[id]||0)*TECH_FADE;
+    const target=techFromCum(id,state.techCum[id]);
+    state.tech[id]=clamp(Math.min(target,(state.tech[id]||0)+TECH_MAXRISE),0,100);
+  });
+  const pf=prefAware();
+  growable().forEach(id=>{
+    const c=state.alloc.pr[id]||0;
+    if(c>0) state.aware[id]=clamp((state.aware[id]||0)
+      +4.2*Math.sqrt(c/30)*(1-(state.aware[id]||0)/100)*(1+pf/100*0.6),0,100);
+    state.aware[id]=clamp((state.aware[id]||0)-AWARE_FADE,0,100);
+  });
 
   state.projects.forEach(pj=>{
     pj.years++; pj.cum+=pj.budget;
@@ -458,7 +519,7 @@ function advanceYear(){
       const prob=0.25+Math.min(0.35,(pj.cum/g.need-1)*0.45);
       if(Math.random()<prob){
         const rem=crossRemaining(pj.a,pj.b);
-        if(rem.length){const id=rem[0];state.owned[id]=1;state.area[id]=0;pj.done=id;newV.push(id);}
+        if(rem.length){acquire(rem[0]);pj.done=rem[0];newV.push(rem[0]);}
         else pj.done="none";
       }
     }
@@ -469,12 +530,13 @@ function advanceYear(){
       +"</b> の交配からは、これ以上新しい系統は得られませんでした。"});
     return false;
   });
-  newV.forEach(id=>{
-    const v=V[id];
-    notices.push({t:"big",msg:"新品種 <b>「"+v.n+"」</b> を育成しました（"+v.cross.map(c=>V[c].n).join(" × ")
-      +"）。"+esc(v.note)+(v.req>state.tech?"　栽培技術が <b>"+v.req+"</b> に達するまで、産地には広がりません。":"")});
+
+  growable().slice().forEach(id=>{
+    if(Math.random()<sportChance(id)){
+      const cand=(SPORT[id]||[]).filter(s=>!state.owned[s]);
+      if(cand.length){acquire(cand[0]);sports.push([id,cand[0]]);}
+    }
   });
-  if(newV.length) govGain+=10;
 
   state.imports.forEach(i=>{i.fresh=false;i.left--;});
   state.imports.filter(i=>i.left<=0).forEach(i=>{
@@ -483,169 +545,188 @@ function advanceYear(){
   });
   state.imports=state.imports.filter(i=>i.left>0);
 
-  convertAreas();
+  const came=advancePipes();
+  const moved=convertAreas();
   state.national*=1+CFG.nationalGrowth+(Math.random()-0.5)*0.006;
   const sh=share();
-  if(sh>before.share) govGain+=5;
-  /* 関心が高いほど上積みは効きにくい。放っておけば年7ずつ下がる */
-  state.gov=clamp(state.gov+govGain*(1-state.gov/100*0.75),0,100);
 
+  newV.forEach(id=>{const v=V[id];
+    notices.push({t:"big",msg:"新品種 <b>「"+v.n+"」</b> を育成しました（"
+      +v.cross.map(c=>V[c].n).join(" × ")+"）。"+esc(v.note)
+      +(state.tech[id]>1?"　親ゆずりの栽培知見で、技術 <b>"+state.tech[id].toFixed(0)
+        +"</b> から始まります。":"　栽培技術も知名度もゼロからです。")});});
+  sports.forEach(([from,id])=>{const v=V[id];
+    notices.push({t:"big",msg:"<b>"+V[from].n+"</b> の園地で枝変わりが見つかりました。"
+      +"<b>「"+v.n+"」</b>です。"+esc(v.note)+"　交配ではないので、育種予算はかかりません。"});});
+  if(came>1) notices.push({t:"good",msg:"5年前に改植した <b>"+ha(came)
+    +"ha</b> が結果樹になりました。"});
   if(sh<before.share) notices.push({t:"warn",msg:"他県も産地づくりを進めています。手を止めるとシェアは下がります。"});
-  const unused=growable().filter(id=>V[id].req>state.tech&&(state.area[id]||0)<5&&V[id].gen);
-  if(unused.length) notices.push({t:"warn",msg:"<b>"+unused.map(id=>V[id].n).join("・")
-    +"</b> は栽培技術が追いついておらず、産地に広がっていません。"});
+  const stuck=growable().filter(id=>V[id].req&&(state.tech[id]||0)<V[id].req*0.6
+    &&(state.area[id]||0)+pipeSum(id)<5);
+  if(stuck.length) notices.push({t:"warn",msg:"<b>"+stuck.map(id=>V[id].n).join("・")
+    +"</b> は栽培法が固まっておらず、だれも植えていません。"});
 
   state.records.push({year:state.year,share:sh,output:output(),budget:p.budget,
-    tech:state.tech,aware:state.aware,gov:state.gov,
-    varieties:growable().filter(id=>V[id].gen).length});
-  state.last={year:state.year,notices,p,before,after:{tech:state.tech,aware:state.aware,
-    gov:state.gov,share:sh},newV};
+    pref:prefAware(),varieties:growable().length,
+    bred:growable().filter(id=>V[id].gen||V[id].sport).length});
+  state.last={year:state.year,notices,p,before,after:{share:sh,pref:prefAware()},came,moved};
   state.year++;
+  fitAllocation();
 
   if(state.year>CFG.runYears&&!state.verdict){
     const s=sh*100;
-    const t=[[8.0,"秀","全国に知られる産地","シェア "+s.toFixed(2)+"%。品種・技術・PRが噛み合い、産地の形が変わりました。"],
-             [6.5,"優","確かな前進","シェア "+s.toFixed(2)+"%。育てた品種が産地に根づきました。"],
-             [5.0,"良","着実な積み上げ","シェア "+s.toFixed(2)+"%。もう一手、育種か技術のどちらかを厚くできました。"],
+    const t=[[6.0,"秀","全国に知られる産地","シェア "+s.toFixed(2)+"%。品種・栽培技術・知名度が噛み合い、産地の形が変わりました。"],
+             [5.2,"優","確かな前進","シェア "+s.toFixed(2)+"%。育てた品種が産地に根づきました。"],
+             [4.5,"良","着実な積み上げ","シェア "+s.toFixed(2)+"%。品種を増やすか、栽培技術を厚くするか、もう一手ありました。"],
              [4.2,"並","現状維持","シェア "+s.toFixed(2)+"%。他県の伸びに対して、辛うじて踏みとどまりました。"]]
-      .find(x=>s>=x[0])||[0,"—","産地の後退","シェア "+s.toFixed(2)+"%。予算と工数が分散し、どの施策も実を結びませんでした。"];
+      .find(x=>s>=x[0])||[0,"—","産地の後退","シェア "+s.toFixed(2)+"%。予算が分散し、どの品種も産地になりませんでした。"];
     state.verdict={rank:t[1],title:t[2],body:t[3]};
     state.over=true;
   }
   save(); renderAll();
   const rc=$("report-card"); rc.classList.remove("fadein"); void rc.offsetWidth; rc.classList.add("fadein");
 }
+/* 新年度の予算に収まるよう、前年度の配分を比例で縮める */
+function fitAllocation(){
+  let guard=0;
+  while(plan().over>0&&guard++<40){
+    const p=plan(),k=p.budget/Math.max(1,p.cost);
+    growable().forEach(id=>{
+      state.alloc.tech[id]=Math.floor((state.alloc.tech[id]||0)*k/5)*5;
+      state.alloc.pr[id]=Math.floor((state.alloc.pr[id]||0)*k/5)*5;
+    });
+    state.projects.forEach(pj=>{pj.budget=Math.floor(pj.budget*k/5)*5;});
+    if(plan().over>0&&k>0.99){
+      const t=growable().filter(id=>(state.alloc.tech[id]||0)>0);
+      if(t.length) state.alloc.tech[t[0]]-=5;
+      else{const r=growable().filter(id=>(state.alloc.pr[id]||0)>0);
+        if(r.length) state.alloc.pr[r[0]]-=5; else break;}
+    }
+  }
+}
+/* 親品種の栽培知見は子に引き継がれる。枝変わりは同じ系統なので、より多く残る */
+function acquire(id){
+  const v=V[id];
+  const par=v.cross||(v.sport?[v.sport]:[]);
+  const rate=v.sport?0.60:0.35;
+  let t=0; par.forEach(pid=>{t=Math.max(t,(state.tech[pid]||0)*rate);});
+  state.owned[id]=1; state.area[id]=0; state.aware[id]=0;
+  state.tech[id]=t; state.techCum[id]=cumFromTech(id,t);
+  state.pipe[id]=new Array(CFG.lagYears).fill(0);
+  state.alloc.tech[id]=0; state.alloc.pr[id]=0;
+  return t;
+}
 
 /* ============ 描画 ============ */
 function slotOf(id){
-  if(V[id].k==="温州") return 0;
   if(!state.slots) state.slots={};
   if(state.slots[id]==null){
     const used=Object.values(state.slots);
-    let n=1; while(used.indexOf(n)>=0&&n<7) n++;
-    state.slots[id]=n<7?n:7;
+    let n=0; while(used.indexOf(n)>=0&&n<6) n++;
+    state.slots[id]=n;
   }
   return state.slots[id];
 }
+const col=i=>i>=6?"var(--ink-3)":"var("+SERIES[i]+")";
 function renderHeader(){
-  const p=plan(),sh=share();
+  const p=plan();
   $("s-year").innerHTML=state.year+'<small>年目 / '+CFG.runYears+'</small>';
-  $("s-share").innerHTML=(sh*100).toFixed(2)+'<small>%</small>';
-  $("s-budget").innerHTML=p.cost.toFixed(0)+'<small>/'+p.budget+'百万円</small>';
-  $("s-budget").className=p.overBudget?"neg":"";
+  $("s-share").innerHTML=(share()*100).toFixed(2)+'<small>%</small>';
+  $("s-budget").innerHTML=p.cost+'<small>/'+p.budget+'百万円</small>';
+  $("s-budget").className=p.over?"neg":"";
   $("m-budget").style.width=Math.min(100,p.cost/p.budget*100)+"%";
-  $("m-budget").className=p.overBudget?"over":"a";
-  $("s-staff").innerHTML=p.staff+'<small>/'+CFG.staff+'</small>';
-  $("s-staff").className=p.overStaff?"neg":"";
-  $("m-staff").style.width=Math.min(100,p.staff/CFG.staff*100)+"%";
-  $("m-staff").className=p.overStaff?"over":"";
-  $("s-gov").textContent=state.gov.toFixed(0);
-  $("m-gov").style.width=state.gov+"%";
-  $("s-aware").textContent=state.aware.toFixed(0);
-  $("m-aware").style.width=state.aware+"%";
-  $("s-tech").textContent=state.tech.toFixed(0);
-  $("m-tech").style.width=state.tech+"%";
+  $("m-budget").className=p.over?"over":"a";
+  const pf=prefAware();
+  $("s-pref").textContent=pf.toFixed(0);
+  $("m-pref").style.width=pf+"%";
+  $("s-count").innerHTML=growable().length+'<small>品種</small>';
 }
 function renderComposition(){
-  const groups={};
-  growable().forEach(id=>{
-    const a=state.area[id]||0; if(a<1) return;
-    const key=V[id].k==="温州"?"温州":id;
-    const name=V[id].k==="温州"?"温州みかん":V[id].n;
-    const s=slotOf(id);
-    if(!groups[key]) groups[key]={name,area:0,slot:s};
-    groups[key].area+=a;
-  });
-  const rows=Object.values(groups).sort((a,b)=>b.area-a.area);
-  const tot=rows.reduce((a,r)=>a+r.area,0)||1;
-  const col=r=>r.slot>=7?"var(--ink-3)":"var("+SERIES[r.slot]+")";
-  $("area-sub").textContent="栽培面積 "+CFG.areaTotal.toLocaleString("ja-JP")+"ha（県全体）";
+  const ids=growable().filter(id=>(state.area[id]||0)>=1)
+    .sort((a,b)=>(state.area[b]||0)-(state.area[a]||0));
+  const tot=ids.reduce((s,id)=>s+(state.area[id]||0),0)||1;
+  const pipeTot=growable().reduce((s,id)=>s+pipeSum(id),0);
+  $("v-sub").textContent="結果面積 "+ha(tot)+"ha"+(pipeTot>1?"・改植中 "+ha(pipeTot)+"ha":"");
   $("composition").innerHTML=
-    '<div class="comp">'+rows.map(r=>'<i style="flex:'+(r.area/tot).toFixed(4)
-      +' 1 0;background:'+col(r)+'"></i>').join("")+'</div>'
-    +'<div class="legend">'+rows.map(r=>'<span><i class="sw" style="background:'+col(r)
-      +'"></i>'+esc(r.name)+' <b class="num">'+(r.area/tot*100).toFixed(1)+'%</b></span>').join("")+'</div>'
-    +'<div class="scroll" style="margin-top:9px"><table><thead><tr><th>品種</th><th>面積</th>'
-    +'<th>単価指数</th><th>必要技術</th><th>産出額</th></tr></thead><tbody>'
-    +growable().filter(id=>(state.area[id]||0)>=1).sort((a,b)=>(state.area[b]||0)-(state.area[a]||0))
-      .map(id=>{const v=V[id],a=state.area[id]||0;
-        const ok=state.tech>=v.req?1:0.55, aw=v.k==="温州"?1:awareMul();
-        const o=a*CFG.revPerHa*v.yld*v.price*techMul()*ok*aw;
-        return '<tr><td>'+esc(v.n)+'</td><td>'+Math.round(a).toLocaleString("ja-JP")+' ha</td><td>'
-          +v.price.toFixed(2)+'</td><td class="'+(state.tech<v.req?"neg":"")+'">'+(v.req||"—")
-          +'</td><td>'+Math.round(o).toLocaleString("ja-JP")+'</td></tr>';}).join("")
-    +'</tbody></table></div>';
+    '<div class="comp">'+ids.map(id=>'<i style="flex:'+((state.area[id]||0)/tot).toFixed(4)
+      +' 1 0;background:'+col(slotOf(id))+'"></i>').join("")+'</div>'
+    +'<div class="legend">'+ids.map(id=>'<span><i class="sw" style="background:'+col(slotOf(id))
+      +'"></i>'+esc(V[id].n)+' <b class="num">'+((state.area[id]||0)/tot*100).toFixed(1)
+      +'%</b></span>').join("")+'</div>';
 }
-function vcard(id,extra,cls){
-  const v=V[id];
-  return '<div class="vcard '+(cls||"")+'">'
-    +'<div class="vname"><b>'+esc(v.n)+'</b>'+(extra||"")+'</div>'
-    +(v.cross?'<p class="vcross">'+v.cross.map(c=>esc(V[c].n)).join(" × ")
-      +(v.real?'　<span class="quiet">'+esc(v.real)+'</span>':'')+'</p>':'')
-    +'<p class="vcross">'+esc(v.note)+'</p>'
-    +(v.grow?'<div class="vstat"><span>単価 '+v.price.toFixed(2)+'</span><span>収量 '
-      +v.yld.toFixed(2)+'</span><span class="'+(state.tech<v.req?"neg":"")+'">必要技術 '+(v.req||0)+'</span>'
-      +'<span>'+Math.round(state.area[id]||0).toLocaleString("ja-JP")+' ha</span></div>':"")
-    +'</div>';
+function gauge(label,val,color,mark){
+  return '<div class="gauge2"><span>'+label+'</span><span class="track">'
+    +'<i style="width:'+clamp(val,0,100).toFixed(0)+'%;background:'+color+'"></i>'
+    +(mark?'<u style="left:'+clamp(mark,0,100)+'%"></u>':'')+'</span><b>'+val.toFixed(0)+'</b></div>';
 }
 function renderVarieties(){
-  const own=Object.keys(state.owned).filter(id=>V[id]);
-  const grow=own.filter(id=>V[id].grow),mat=own.filter(id=>V[id].mat);
-  const bred=grow.filter(id=>V[id].gen);
-  $("v-sub").textContent="栽培 "+grow.length+"品種（うち自県育成 "+bred.length+"）・素材 "+mat.length;
-  let h=grow.map(id=>vcard(id,V[id].gen?'<span class="tag new">自県育成</span>':"","own")).join("");
-  h+=mat.map(id=>vcard(id,'<span class="tag m">素材</span>',"mat")).join("");
-  h+=state.imports.map(i=>vcard(i.id,'<span class="tag">導入まで '+i.left+'年</span>',"work")).join("");
-  $("varieties").innerHTML=h;
+  const ids=growable().sort((a,b)=>((state.area[b]||0)+pipeSum(b))-((state.area[a]||0)+pipeSum(a)));
+  $("varieties").innerHTML=ids.map(id=>{
+    const v=V[id],ar=state.area[id]||0,t=state.tech[id]||0,aw=state.aware[id]||0;
+    const ea=effAware(id),pipe=pipeSum(id),sp=sportChance(id);
+    const ty=0.65+t/100*0.75,q=v.req?(t>=v.req?1:0.60+t/v.req*0.40):1;
+    const o=ar*CFG.revPerHa*v.yld*v.price*ty*q*(0.70+ea/100*0.55);
+    const cold=v.req&&t<v.req*0.6;
+    const origin=v.cross?v.cross.map(c=>V[c].n).join(" × ")
+      :(v.sport?V[v.sport].n+" の枝変わり":"在来");
+    return '<div class="vc '+(ar>0?"on":"")+(cold?" cold":"")+'">'
+      +'<div class="vhead"><span class="vt">'+esc(v.n)+'</span>'
+      +'<span class="varea">'+ha(ar)+' ha'+(pipe>1?' <span class="pipe">+'+ha(pipe)+'</span>':'')+'</span></div>'
+      +'<p class="vsub">'+esc(v.k)+'・'+esc(origin)+(v.real?'（'+esc(v.real)+'）':'')+'</p>'
+      +gauge("栽培技術",t,"var(--gov)",v.req||0)
+      +'<input type="range" data-t="'+id+'" min="0" max="120" step="5" value="'
+        +(state.alloc.tech[id]||0)+'">'
+      +'<div class="money"><span>栽培技術　累計 '+ha(state.techCum[id]||0)+'</span><span>'
+        +(state.alloc.tech[id]||0)+'百万円</span></div>'
+      +gauge("消費者認知",aw,"var(--accent)")
+      +'<input type="range" data-p="'+id+'" min="0" max="120" step="5" value="'
+        +(state.alloc.pr[id]||0)+'">'
+      +'<div class="money"><span>消費者PR</span><span>'+(state.alloc.pr[id]||0)+'百万円</span></div>'
+      +'<div class="vfoot"><span>単価 '+v.price.toFixed(2)+'</span>'
+      +(v.req?'<span class="'+(t<v.req?"neg":"")+'">必要技術 '+v.req+'</span>':'')
+      +'<span>実効認知 '+ea.toFixed(0)+'</span>'
+      +'<span>技術の頭打ち '+techFromCum(id,state.techCum[id]||0).toFixed(0)+'</span>'
+      +'<span>産出額 '+ha(o)+'</span>'
+      +(sp>0?'<span>枝変わり '+(sp*100).toFixed(1)+'%</span>':'')+'</div>'
+      +(cold?'<p class="vsub" style="color:var(--bad);margin:5px 0 0">栽培法が固まっていません。'
+        +'技術'+Math.ceil(v.req*0.6)+'を超えるまで、産地は動きません。</p>':'')
+      +'</div>';
+  }).join("");
 }
 function renderAlloc(){
   const p=plan();
-  $("alloc-sub").innerHTML='残 <b class="'+(p.overBudget?"neg":"")+'">'
-    +(p.overBudget?"−"+p.overBudget:p.left)+'</b> 百万円／工数 '+p.staff+'/'+CFG.staff;
-  const seg=(key,arr)=>'<div class="seg">'+arr.map((o,i)=>'<button type="button" data-seg="'+key
-    +'" data-val="'+i+'" aria-pressed="'+(state.alloc[key]===i?'true':'false')+'">'+o.label
-    +'</button>').join("")+'</div>';
+  $("alloc-sub").innerHTML='残 <b class="'+(p.over?"neg":"")+'">'+(p.over?"−"+p.over:p.left)+'</b> 百万円';
   $("alloc").innerHTML=
-    '<div class="alloc"><label>栽培技術の確立 <b>'+state.alloc.tech+' 百万円</b></label>'
-    +'<input type="range" id="a-tech" min="0" max="300" step="5" value="'+state.alloc.tech+'">'
-    +'<p class="hint">工数 '+CFG.techStaff+'。収量と品質が上がり、新品種を産地に広げられます。'
-    +'同じ事業を続けるほど効率が上がります（継続 '+state.techStreak+'年）。</p></div>'
-    +'<div class="alloc"><label>消費者PR <b>'+PR[state.alloc.pr].cost+' 百万円・工数 '
-      +PR[state.alloc.pr].staff+'</b></label>'+seg("pr",PR)
-    +'<p class="hint">認知度は上げるのに金も工数もかかりますが、下がるのは年1.2とゆっくりです。'
-    +'中晩柑の単価と、産地への普及の速さに効きます。</p></div>'
-    +'<div class="alloc"><label>知事へのPR <b>'+GOVPR[state.alloc.govpr].cost+' 百万円・工数 '
-      +GOVPR[state.alloc.govpr].staff+'</b></label>'+seg("govpr",GOVPR)
-    +'<p class="hint">予算はほとんど要りませんが工数を食います。関心は年7ずつ下がり、'
-    +'すでに高いほど上積みは効きにくくなります。新品種の育成やシェアの上昇があると効きが増します。'
-    +'翌年度の予算そのものが動きます。</p></div>'
-    +(p.overBudget?'<div class="notice bad">予算を '+p.overBudget+'百万円 超過しています。</div>':'')
-    +(p.overStaff?'<div class="notice bad">職員の工数が '+p.overStaff+' 不足しています。</div>':'');
+    '<dl class="led"><dt>当初予算</dt><dd>'+yen(p.budget)+'</dd></dl>'
+    +'<dl class="led"><dt>栽培技術</dt><dd>'+yen(p.tech)+'</dd></dl>'
+    +'<dl class="led"><dt>消費者PR</dt><dd>'+yen(p.pr)+'</dd></dl>'
+    +'<dl class="led"><dt>育種事業</dt><dd>'+yen(p.breed)+'</dd></dl>'
+    +(p.imp?'<dl class="led"><dt>遺伝資源の導入</dt><dd>'+yen(p.imp)+'</dd></dl>':'')
+    +'<dl class="led total"><dt>'+(p.over?"超過":"残額")+'</dt><dd class="'+(p.over?"neg":"")+'">'
+      +yen(p.over?-p.over:p.left)+'</dd></dl>'
+    +(p.over?'<div class="notice bad">予算を '+p.over+'百万円 超過しています。</div>':'')
+    +'<p class="hint">予算は繰り越せません。産地が大きくなると翌年度の予算も増えます。</p>';
 }
 function renderBreeding(){
   const p=plan();
-  $("breed-sub").textContent="進行中 "+state.projects.length+"/"+CFG.maxProjects
-    +"・育種費 "+p.breed+"百万円";
+  $("breed-sub").textContent="進行中 "+state.projects.length+"/"+CFG.maxProjects+"・"+p.breed+"百万円";
   let h="";
   state.projects.forEach((pj,i)=>{
     const g=GEN[pj.gen]||GEN[1];
-    const prog=Math.min(1,pj.cum/g.need),yr=Math.min(1,pj.years/g.years);
     const ready=pj.years>=g.years&&pj.cum>=g.need;
-    h+='<div class="vcard work" style="margin-bottom:9px">'
-      +'<div class="vname"><b>'+esc(V[pj.a].n)+' × '+esc(V[pj.b].n)+'</b>'
+    h+='<div class="vc cold" style="margin-bottom:9px">'
+      +'<div class="vhead"><span class="vt">'+esc(V[pj.a].n)+' × '+esc(V[pj.b].n)+'</span>'
       +(ready?'<span class="tag new">選抜中</span>':'<span class="tag">第'+pj.gen+'世代</span>')+'</div>'
-      +'<div class="vstat"><span>経過 '+pj.years+'年 / 最短'+g.years+'年</span>'
-      +'<span>累計 '+Math.round(pj.cum)+' / '+g.need+'百万円</span></div>'
-      +'<div class="bar-area"><i style="width:'+(prog*100).toFixed(0)
-      +'%;background:var(--accent)"></i></div>'
-      +'<div class="bar-area" style="margin-top:2px"><i style="width:'+(yr*100).toFixed(0)
-      +'%;background:var(--gov)"></i></div>'
-      +'<div class="alloc" style="margin:7px 0 0"><label>今年度 <b>'+pj.budget+' 百万円</b></label>'
-      +'<input type="range" data-pb="'+i+'" min="0" max="150" step="5" value="'+pj.budget+'"></div>'
-      +'<div class="btnrow" style="margin-top:5px"><button class="btn" data-act="stop" data-i="'+i
-      +'">この課題を打ち切る</button></div>'
-      +(ready?'<p class="hint">条件を満たしました。毎年、有望個体が選抜される可能性があります。'
-        +'予算を厚くすると確率が上がります。</p>':'')
+      +gauge("予算",Math.min(100,pj.cum/g.need*100),"var(--accent)")
+      +gauge("年数",Math.min(100,pj.years/g.years*100),"var(--gov)")
+      +'<div class="money"><span>'+Math.round(pj.cum)+' / '+g.need+'百万円</span>'
+      +'<span>'+pj.years+' / '+g.years+'年</span></div>'
+      +'<input type="range" data-pb="'+i+'" min="0" max="150" step="5" value="'+pj.budget+'">'
+      +'<div class="money"><span>今年度</span><span>'+pj.budget+'百万円</span></div>'
+      +'<div class="btnrow" style="margin-top:6px"><button class="btn" data-act="stop" data-i="'+i
+      +'">打ち切る</button></div>'
+      +(ready?'<p class="vsub" style="margin:6px 0 0">条件を満たしました。毎年、有望個体が'
+        +'選抜される可能性があります。予算を厚くすると確率が上がります。</p>':'')
       +'</div>';
   });
   const own=Object.keys(state.owned).filter(id=>V[id]);
@@ -653,21 +734,19 @@ function renderBreeding(){
     +(sel===id?' selected':'')+'>'+esc(V[id].n)+'</option>').join("");
   const a=state.pick.a,b=state.pick.b;
   const outs=crossOutcomes(a,b),rem=crossRemaining(a,b);
-  let verdict='<p class="hint">母本と父本を選んでください。</p>',can=false;
+  let verdict='<p class="hint">母本と父本を選んでください。いま持っている品種の組合せでしか交配できません。</p>',can=false;
   if(a&&b&&a===b) verdict='<p class="hint">同じ品種どうしは交配できません。</p>';
   else if(a&&b&&rem.length){
-    const gen=projectGen(a,b),g=GEN[gen];
-    verdict='<div class="notice good">有望な組合せです。第'+gen+'世代、最短 <b>'+g.years
-      +'年</b>・累計 <b>'+g.need+'百万円</b> が目安です。</div>';
+    const g=GEN[projectGen(a,b)];
+    verdict='<div class="notice good">有望な組合せです。最短 <b>'+g.years+'年</b>・累計 <b>'
+      +g.need+'百万円</b> が目安です。</div>';
     can=state.projects.length<CFG.maxProjects;
   }else if(a&&b&&outs.length) verdict='<div class="notice warn">この組合せからは、すでに系統を得ています。</div>';
-  else if(a&&b) verdict='<div class="notice">この組合せから有望な個体は期待できません。'
-    +'素材をそろえるところから考えてください。</div>';
+  else if(a&&b) verdict='<div class="notice">この組合せから有望な個体は期待できません。</div>';
   h+='<div class="alloc"><label>母本</label><select id="pick-a">'+opt(a)+'</select></div>'
     +'<div class="alloc"><label>父本</label><select id="pick-b">'+opt(b)+'</select></div>'
     +verdict
-    +'<button class="btn" data-act="start" style="margin-top:7px"'+(can?"":" disabled")
-    +'>交配を始める（工数 '+CFG.breedStaff+'/年）</button>'
+    +'<button class="btn" data-act="start" style="margin-top:7px"'+(can?"":" disabled")+'>交配を始める</button>'
     +(state.projects.length>=CFG.maxProjects?'<p class="hint">同時に進められるのは'
       +CFG.maxProjects+'課題までです。</p>':'');
   $("breeding").innerHTML=h;
@@ -675,23 +754,22 @@ function renderBreeding(){
 function renderImports(){
   const pend=state.imports.map(i=>i.id);
   const avail=Object.keys(V).filter(id=>V[id].mat&&!state.owned[id]&&pend.indexOf(id)<0);
-  let h="";
-  if(state.imports.length) h+=state.imports.map(i=>'<div class="notice">'+esc(V[i.id].n)
+  let h=state.imports.map(i=>'<div class="notice">'+esc(V[i.id].n)
     +' を導入手続き中（あと '+i.left+'年）</div>').join("");
-  h+='<div class="vgrid" style="margin-top:'+(state.imports.length?'9px':'0')+'">'
+  if(avail.length) h+='<div class="vg" style="margin-top:'+(state.imports.length?'9px':'0')
+    +';grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">'
     +avail.map(id=>{const v=V[id];
-      return '<div class="vcard mat"><div class="vname"><b>'+esc(v.n)+'</b></div>'
-        +'<p class="vcross">'+esc(v.note)+'</p>'
-        +'<div class="vstat"><span>'+v.cost+'百万円</span><span>'+v.lead+'年</span>'
-        +'<span>工数 '+CFG.importStaff+'</span></div>'
+      return '<div class="vc"><div class="vhead"><span class="vt">'+esc(v.n)+'</span></div>'
+        +'<p class="vsub">'+esc(v.note)+'</p>'
+        +'<div class="money"><span>'+v.cost+'百万円</span><span>'+v.lead+'年</span></div>'
         +'<button class="btn" style="margin-top:5px" data-act="import" data-id="'+id
         +'">導入する</button></div>';}).join("")+'</div>';
-  if(!avail.length&&!state.imports.length) h='<p class="quiet">導入できる素材はすべて手に入れました。</p>';
+  else if(!state.imports.length) h='<p class="quiet">導入できる素材はすべて手に入れました。</p>';
   $("imports").innerHTML=h;
 }
 function arrow(a,b,d){
   const v=b-a;
-  if(Math.abs(v)<0.05) return '<span class="quiet">±0</span>';
+  if(Math.abs(v)<0.005) return '<span class="quiet">±0</span>';
   return '<span class="'+(v<0?"neg":"")+'">'+(v>0?"+":"")+v.toFixed(d||1)+'</span>';
 }
 function renderReport(){
@@ -700,34 +778,39 @@ function renderReport(){
     $("r-title").textContent="今年度の方針";
     $("r-sub").textContent=state.year+"年目・着任";
     el.innerHTML='<p class="quiet">あなたは県の果樹振興係です。40年かけて、自県の柑橘を'
-      +'全国のなかでどこまで押し上げられるかが問われます。使えるのは年度予算と、職員の工数だけです。</p>'
-      +'<div class="notice">「<b>育種</b>」は実在の交配をたどります。いま持っている品種の組合せでしか'
-      +'交配できないので、どの素材を先に導入するかで、十数年先に手に入る品種が決まります。</div>'
-      +'<div class="notice">「<b>栽培技術</b>」は収量と品質を押し上げます。新品種には必要技術水準があり、'
-      +'そこに届かないうちは産地が動きません。品種だけ作っても広がらない、というのが要点です。</div>'
-      +'<div class="notice">「<b>消費者PR</b>」は認知度。上げるには金も工数もかかりますが、'
-      +'下がるのは年1.2とゆっくりで、中晩柑の単価に効きます。</div>'
-      +'<div class="notice">「<b>知事へのPR</b>」は工数を食います。関心は年7ずつ下がり、'
-      +'翌年度の予算そのものを左右します。ここを切らすと、他のすべてが細ります。</div>'
-      +'<p class="hint">全国の柑橘産出額は年0.6%ほど伸びています。何もしなければ、シェアは毎年下がります。</p>';
+      +'全国のなかでどこまで押し上げられるかが問われます。使えるのは年度予算だけで、繰り越せません。</p>'
+      +'<div class="notice"><b>品種ごと</b>に、栽培技術と消費者認知を育てます。'
+      +'新品種は知名度ゼロから始まり、必要技術の6割に届くまで産地はだれも植えません。'
+      +'ただし栽培知見は親から引き継がれます。親を育てておくほど、子の立ち上がりが速くなります。</div>'
+      +'<div class="notice"><b>栽培技術は、その品種に注ぎ込んだ予算の累計の対数で決まります。</b>'
+      +'最初の100百万円でおよそ40まで上がりますが、そこから先は倍々で積まないと動きません。'
+      +'年に上がるのは最大'+TECH_MAXRISE+'までなので、まとめて注いでも一息には上がりません。'
+      +'単価の高い品種ほど、同じ水準に届くまでに多くを要します。</div>'
+      +'<div class="notice"><b>消費者認知は年'+AWARE_FADE+'ずつしか下がりません。</b>'
+      +'上げるのは重いぶん、一度つけた知名度は長く残ります。</div>'
+      +'<div class="notice"><b>消費者認知には相乗効果があります。</b>県全体の知名度が上がるほど、'
+      +'新しい品種の認知も立ち上がりやすくなります。主力品種のPRは次の品種への投資でもあります。</div>'
+      +'<div class="notice"><b>改植は'+CFG.lagYears+'年遅れて効きます。</b>伐採はすぐ面積が減り、'
+      +'植えた分が結果樹になるのは'+CFG.lagYears+'年後です。技術と認知がそろっている品種ほど、産地は速く広がります。</div>'
+      +'<div class="notice"><b>枝変わりは園地で偶然見つかります。</b>栽培面積が広いほど、'
+      +'またその品種の栽培技術が高いほど見つかりやすく、育種予算はかかりません。'
+      +'温州みかんの主要品種の多くは、この偶然から生まれました。</div>'
+      +'<p class="hint">全国の柑橘産出額は年0.25%ほど伸びています。手を止めれば、それだけでシェアは下がります。</p>';
     return;
   }
   $("r-title").textContent=r.year+"年度の結果";
-  $("r-sub").textContent="予算 "+r.p.budget+"百万円・工数 "+r.p.staff+"/"+CFG.staff;
+  $("r-sub").textContent="予算 "+r.p.budget+"百万円";
   let h='<dl class="kpis">'
     +'<div class="kpi"><dt>全国シェア</dt><dd>'+(r.after.share*100).toFixed(2)+'<small>% '
       +arrow(r.before.share*100,r.after.share*100,2)+'</small></dd></div>'
-    +'<div class="kpi"><dt>栽培技術</dt><dd>'+r.after.tech.toFixed(0)+'<small>'
-      +arrow(r.before.tech,r.after.tech)+'</small></dd></div>'
-    +'<div class="kpi"><dt>消費者認知</dt><dd>'+r.after.aware.toFixed(0)+'<small>'
-      +arrow(r.before.aware,r.after.aware)+'</small></dd></div>'
-    +'<div class="kpi"><dt>知事の関心</dt><dd>'+r.after.gov.toFixed(0)+'<small>'
-      +arrow(r.before.gov,r.after.gov)+'</small></dd></div>'
+    +'<div class="kpi"><dt>県全体の認知</dt><dd>'+r.after.pref.toFixed(0)+'<small>'
+      +arrow(r.before.pref,r.after.pref)+'</small></dd></div>'
+    +'<div class="kpi"><dt>結果化</dt><dd>'+ha(r.came)+'<small>ha</small></dd></div>'
+    +'<div class="kpi"><dt>改植</dt><dd>'+ha(r.moved)+'<small>ha</small></dd></div>'
     +'</dl>'
-    +'<dl class="led"><dt>栽培技術の確立</dt><dd>'+yen(r.p.tech||0)+'</dd></dl>'
+    +'<dl class="led"><dt>栽培技術</dt><dd>'+yen(r.p.tech)+'</dd></dl>'
+    +'<dl class="led"><dt>消費者PR</dt><dd>'+yen(r.p.pr)+'</dd></dl>'
     +'<dl class="led"><dt>育種事業</dt><dd>'+yen(r.p.breed)+'</dd></dl>'
-    +'<dl class="led"><dt>消費者PR（'+r.p.pr.label+'）</dt><dd>'+yen(r.p.pr.cost)+'</dd></dl>'
-    +'<dl class="led"><dt>知事PR（'+r.p.gp.label+'）</dt><dd>'+yen(r.p.gp.cost)+'</dd></dl>'
     +(r.p.imp?'<dl class="led"><dt>遺伝資源の導入</dt><dd>'+yen(r.p.imp)+'</dd></dl>':'')
     +'<dl class="led total"><dt>執行額</dt><dd>'+yen(r.p.cost)+'</dd></dl>';
   if(r.notices.length) h+=r.notices.map(n=>'<div class="notice '+n.t+'">'+n.msg+'</div>').join("");
@@ -783,12 +866,11 @@ function renderRecords(){
   s+='<rect id="ch-hit" x="'+VB.l+'" y="'+VB.t+'" width="'+(VB.w-VB.l-VB.r)+'" height="'+(VB.h-VB.t-VB.b)
     +'" fill="transparent" style="cursor:crosshair"/></svg>';
   el.innerHTML='<div class="chartwrap" id="chartwrap">'+s+'<div class="tip" id="tip" hidden></div></div>'
-    +'<div class="scroll" style="max-height:240px;overflow-y:auto;margin-top:10px">'
-    +'<table><thead><tr><th>年度</th><th>シェア</th><th>産出額</th><th>予算</th><th>技術</th>'
-    +'<th>認知</th><th>知事</th><th>育成品種</th></tr></thead><tbody>'
+    +'<div class="scroll" style="max-height:230px;overflow-y:auto;margin-top:10px">'
+    +'<table><thead><tr><th>年度</th><th>シェア</th><th>産出額</th><th>予算</th>'
+    +'<th>県の認知</th><th>品種数</th></tr></thead><tbody>'
     +rs.slice().reverse().map(r=>'<tr><td>'+r.year+'</td><td>'+(r.share*100).toFixed(2)+'%</td><td>'
-      +Math.round(r.output).toLocaleString("ja-JP")+'</td><td>'+r.budget+'</td><td>'+r.tech.toFixed(0)
-      +'</td><td>'+r.aware.toFixed(0)+'</td><td>'+r.gov.toFixed(0)+'</td><td>'+r.varieties
+      +ha(r.output)+'</td><td>'+r.budget+'</td><td>'+r.pref.toFixed(0)+'</td><td>'+r.varieties
       +'</td></tr>').join("")+'</tbody></table></div>';
   chartData={rs,px,py}; bindChart();
 }
@@ -808,9 +890,8 @@ function bindChart(){
     tip.hidden=false;
     tip.innerHTML='<div style="font-family:var(--display);margin-bottom:3px">'+best.year+'年度</div>'
       +'<div class="tr"><span>シェア</span><b>'+(best.share*100).toFixed(2)+'%</b></div>'
-      +'<div class="tr"><span>栽培技術</span><b>'+best.tech.toFixed(0)+'</b></div>'
-      +'<div class="tr"><span>消費者認知</span><b>'+best.aware.toFixed(0)+'</b></div>'
-      +'<div class="tr"><span>育成品種</span><b>'+best.varieties+'</b></div>';
+      +'<div class="tr"><span>県の認知</span><b>'+best.pref.toFixed(0)+'</b></div>'
+      +'<div class="tr"><span>栽培品種</span><b>'+best.varieties+'</b></div>';
     const lx=px(best.year)*sc,tw=tip.offsetWidth;
     tip.style.left=Math.max(0,Math.min(wrap.clientWidth-tw,lx-tw/2))+"px";
     tip.style.top="4px";
@@ -821,18 +902,14 @@ function bindChart(){
 }
 
 /* ============ 操作 ============ */
-/* 予算・工数の表示とボタン状態だけを更新する */
 function readouts(){
   const p=plan();
   renderHeader();
-  $("alloc-sub").innerHTML='残 <b class="'+(p.overBudget?"neg":"")+'">'
-    +(p.overBudget?"−"+p.overBudget:p.left)+'</b> 百万円／工数 '+p.staff+'/'+CFG.staff;
-  $("breed-sub").textContent="進行中 "+state.projects.length+"/"+CFG.maxProjects
-    +"・育種費 "+p.breed+"百万円";
+  $("alloc-sub").innerHTML='残 <b class="'+(p.over?"neg":"")+'">'+(p.over?"−"+p.over:p.left)+'</b> 百万円';
+  $("breed-sub").textContent="進行中 "+state.projects.length+"/"+CFG.maxProjects+"・"+p.breed+"百万円";
   const b=$("advance");
-  b.disabled=!!state.over||p.overBudget>0||p.overStaff>0;
-  b.textContent=state.over?"任期終了":(p.overBudget>0?"予算超過":(p.overStaff>0?"工数不足"
-    :state.year+"年目を終える"));
+  b.disabled=!!state.over||p.over>0;
+  b.textContent=state.over?"任期終了":(p.over>0?"予算超過":state.year+"年目を終える");
 }
 function renderAll(){
   renderHeader();renderComposition();renderVarieties();renderAlloc();
@@ -840,29 +917,24 @@ function renderAll(){
 }
 let resetArmed=false;
 function bindOnce(){
-  /* ドラッグ中は数字と残額だけ更新し、指を離したときに描き直す */
-  const liveLabel=(t,txt)=>{
-    const lab=t.parentElement&&t.parentElement.querySelector("label b");
-    if(lab) lab.textContent=txt;
+  const live=(t,txt)=>{
+    const m=t.nextElementSibling;
+    if(m&&m.classList.contains("money")) m.lastElementChild.textContent=txt;
   };
   document.addEventListener("input",e=>{
-    const t=e.target;
-    if(t.id==="a-tech"){
-      state.alloc.tech=+t.value; liveLabel(t,t.value+" 百万円"); readouts(); return;}
-    if(t.dataset&&t.dataset.pb!==undefined){
-      const i=+t.dataset.pb;
-      if(state.projects[i]){state.projects[i].budget=+t.value;liveLabel(t,t.value+" 百万円");readouts();}
-      return;}
+    const d=e.target.dataset;if(!d)return;
+    if(d.t!==undefined){state.alloc.tech[d.t]=+e.target.value;live(e.target,e.target.value+"百万円");readouts();return;}
+    if(d.p!==undefined){state.alloc.pr[d.p]=+e.target.value;live(e.target,e.target.value+"百万円");readouts();return;}
+    if(d.pb!==undefined){const i=+d.pb;if(state.projects[i]){state.projects[i].budget=+e.target.value;
+      live(e.target,e.target.value+"百万円");readouts();}return;}
   });
   document.addEventListener("change",e=>{
-    const t=e.target;
-    if(t.id==="a-tech"||(t.dataset&&t.dataset.pb!==undefined)){save();renderAll();return;}
+    const t=e.target,d=t.dataset||{};
+    if(d.t!==undefined||d.p!==undefined||d.pb!==undefined){save();renderAll();return;}
     if(t.id==="pick-a"){state.pick.a=t.value;save();renderBreeding();return;}
     if(t.id==="pick-b"){state.pick.b=t.value;save();renderBreeding();return;}
   });
   document.addEventListener("click",e=>{
-    const sg=e.target.closest("[data-seg]");
-    if(sg){state.alloc[sg.dataset.seg]=+sg.dataset.val;save();renderAll();return;}
     const act=e.target.closest("[data-act]");
     if(!act||act.disabled)return;
     const a=act.dataset.act;
@@ -873,7 +945,7 @@ function bindOnce(){
         state.pick={a:"",b:""};
       }
     }
-    if(a==="stop"){state.projects.splice(+act.dataset.i,1);}
+    if(a==="stop") state.projects.splice(+act.dataset.i,1);
     if(a==="import"){
       const id=act.dataset.id;
       if(V[id]&&V[id].mat&&!state.owned[id]) state.imports.push({id,left:V[id].lead,fresh:true});
@@ -892,9 +964,13 @@ function bindOnce(){
 }
 function boot(data){
   const s=(data&&data.state)||load();
-  if(s){state=s;}else{newState();}
+  if(s)state=s; else newState();
   if(!state.pick)state.pick={a:"",b:""};
   if(!state.slots)state.slots={};
+  if(!state.techCum)state.techCum={};
+  growable().forEach(id=>{if(state.techCum[id]==null)state.techCum[id]=cumFromTech(id,state.tech[id]||0);});
+  if(!state.alloc||!state.alloc.tech)state.alloc={tech:{},pr:{}};
+  growable().forEach(id=>{if(!state.pipe[id])state.pipe[id]=new Array(CFG.lagYears).fill(0);});
   if(!state.national)state.national=output()/CFG.startShare;
   bindOnce();renderAll();
 }
