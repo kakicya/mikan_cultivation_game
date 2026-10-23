@@ -790,7 +790,10 @@ function advanceYear(){
   growable().slice().forEach(id=>{
     if(Math.random()<sportChance(id)){
       const cand=(SPORT[id]||[]).filter(s=>!state.owned[s]);
-      if(cand.length){acquire(cand[0]);sports.push([id,cand[0]]);}
+      if(cand.length){
+        const got=cand[Math.floor(Math.random()*cand.length)];
+        acquire(got);sports.push([id,got]);
+      }
     }
   });
 
@@ -1145,7 +1148,8 @@ function renderSportHints(){
         +'<span class="quiet">（'+(V[id].how||"枝変わり")+'）</span>').join("・"):"—")+'</td>'
       +'<td class="q">'+(r.rem.length?"？".repeat(r.rem.length):"なし")+'</td></tr>').join("")
     +'</tbody></table></div>'
-    +'<p class="hint">確率はその年のものです。面積が大きいほど、また技術が高いほど上がります。</p>';
+    +'<p class="hint">確率はその年のものです。面積が大きいほど、また技術が高いほど上がります。'
+    +'残っている系統のどれが見つかるかは分かりません。</p>';
 }
 function renderHowto(){
   $("howto").innerHTML='<p class="quiet">あなたは県の果樹振興係です。50年かけて、自県の柑橘を'
