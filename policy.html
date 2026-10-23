@@ -486,6 +486,13 @@ function protectLeft(id){
 function priceOf(id){return V[id].price*pmulOf(id);}
 /* 知名度が単価に効く幅は、品種の格によって違う。温州のような日常の品種は
    知られていても値が跳ねないが、優良品種は認知されてはじめて高値がつく */
+/* 栽培技術は品質を通じて単価に効く。必要技術に届くまでは値がつかず、
+   そこから先は残りの伸びしろに応じて上がり、技術100で満額の1.45倍になる */
+function qualityOf(id,t){
+  const need=V[id].req||0;
+  if(t<need) return 0.60+t/Math.max(1,need)*0.40;
+  return 1+(t-need)/Math.max(1,100-need)*0.45;
+}
 function awFactor(id){
   const prem=clamp((V[id].price-1.0)/2.5,0,1);
   const span=0.35+prem*0.75;
@@ -552,7 +559,7 @@ function output(){
     const v=V[id],ar=state.area[id]||0; if(ar<=0) return;
     const t=state.tech[id]||0;
     const ty=0.62+t/100*0.95;
-    const q=v.req?(t>=v.req?1:0.60+t/v.req*0.40):1;
+    const q=qualityOf(id,t);
     o+=ar*CFG.revPerHa*v.yld*priceOf(id)*ty*q*awFactor(id)*glutFactor(v.s);
   });
   return o*seasonBonus();
@@ -761,9 +768,9 @@ function advanceYear(){
 
   if(state.year>CFG.runYears&&!state.verdict){
     const s=sh*100;
-    const t=[[38.0,"秀","全国を代表する産地","シェア "+s.toFixed(2)+"%。品種・栽培技術・知名度が噛み合い、産地の形が変わりました。"],
-             [31.0,"優","確かな前進","シェア "+s.toFixed(2)+"%。新しい品種が産地に根づき、値崩れを大きく上回りました。"],
-             [23.0,"良","着実な積み上げ","シェア "+s.toFixed(2)+"%。更新が値崩れに勝ちました。集中を強めれば、もう一段伸びます。"],
+    const t=[[42.0,"秀","全国を代表する産地","シェア "+s.toFixed(2)+"%。品種・栽培技術・知名度が噛み合い、産地の形が変わりました。"],
+             [34.0,"優","確かな前進","シェア "+s.toFixed(2)+"%。新しい品種が産地に根づき、値崩れを大きく上回りました。"],
+             [25.0,"良","着実な積み上げ","シェア "+s.toFixed(2)+"%。更新が値崩れに勝ちました。集中を強めれば、もう一段伸びます。"],
              [8.4,"並","着任時のシェアを守った","シェア "+s.toFixed(2)+"%。品種は年々値を下げます。そのなかで守り切ったのは健闘です。"]]
       .find(x=>s>=x[0])||[0,"—","産地の後退","シェア "+s.toFixed(2)+"%。古い品種を作り続けるあいだに、産地が細りました。"];
     state.verdict={rank:t[1],title:t[2],body:t[3]};
@@ -851,7 +858,7 @@ function renderVarieties(){
   $("varieties").innerHTML=ids.map(id=>{
     const v=V[id],ar=state.area[id]||0,t=state.tech[id]||0,aw=state.aware[id]||0;
     const ea=effAware(id),pipe=pipeSum(id),sp=sportChance(id);
-    const ty=0.62+t/100*0.95,q=v.req?(t>=v.req?1:0.60+t/v.req*0.40):1;
+    const ty=0.62+t/100*0.95,q=qualityOf(id,t);
     const o=ar*CFG.revPerHa*v.yld*priceOf(id)*ty*q*awFactor(id)*glutFactor(v.s);
     const cold=v.req&&t<v.req*0.6;
     const origin=v.cross?v.cross.map(c=>V[c].n).join(" × ")
@@ -872,6 +879,7 @@ function renderVarieties(){
         +protectLeft(id)+'年</span>':'')+'</span>'
       +(v.req?'<span class="'+(t<v.req?"neg":"")+'">必要技術 '+v.req+'</span>':'')
       +'<span>実効認知 '+ea.toFixed(0)+'</span>'
+      +'<span>技術による単価 ×'+qualityOf(id,t).toFixed(2)+'</span>'
       +'<span>認知による単価 ×'+awFactor(id).toFixed(2)+'</span>'
       +(glutFactor(v.s)<0.995?'<span class="neg">出荷集中 ×'+glutFactor(v.s).toFixed(2)
         +'（'+SEASONS[v.s]+' '+ha(seasonAreas()[v.s])+'ha）</span>':'')
@@ -1053,6 +1061,9 @@ function renderHowto(){
     +'<div class="notice"><b>消費者認知には相乗効果があります。</b>県全体の知名度が上がるほど、'
     +'新しい品種の認知も立ち上がりやすくなります。主力品種のPRは、次の品種への投資でもあります。'
     +'認知が下がるのは年'+AWARE_FADE+'とゆるやかです。</div>'
+    +'<div class="notice"><b>栽培技術は単価にも効きます。</b>必要技術に届くまでは値がつきませんが、'
+    +'そこから先は残りの伸びしろに応じて上がり、技術100まで引き上げれば単価が1.45倍になります。'
+    +'必要技術の重い品種ほど、ゲートを越えたあとの伸びは速くなります。</div>'
     +'<div class="notice"><b>優良品種は、知られてはじめて高値がつきます。</b>'
     +'認知度が単価に効く幅は品種の格で違い、温州のような日常の品種は知られていても'
     +'1.19倍どまりですが、最上級の品種は無名なら0.51倍、しっかり認知させれば1.61倍になります。'
@@ -1084,7 +1095,7 @@ function renderHowto(){
     +'<div class="notice"><b>育種は、いま持っている品種の組合せでしか始められません。</b>'
     +'どの素材を先に導入するかで、十数年先に手に入る品種が決まります。'
     +'有望な組合せかはその場で分かりますが、何が生まれるかは成功するまで分かりません。</div>'
-    +'<p class="hint">評価は40年目のシェアで決まります。秀38%／優31%／良23%／並8.4%。'
+    +'<p class="hint">評価は40年目のシェアで決まります。秀42%／優34%／良25%／並8.4%。'
     +'並の基準が着任時のシェアです。品種は年々値を下げるので、守るだけでも更新が要ります。'
     +'技術とPRを1品種に絞るほど伸びます。</p>';
 }
