@@ -281,121 +281,123 @@ const TECH_K=18, TECH_S=6, TECH_MAXRISE=9, TECH_FADE=0.995, AWARE_FADE=0.8;
    よそから買ってきた品種はすでに値崩れが始まったところから始まる */
 const PRICE_DECAY=0.982, PRICE_FLOOR=0.55, PRICE_START_MAT=0.85, PRICE_START_OLD=0.78;
 /* 単価が安ければ離農が進み、高ければ少しずつ新植が増える。弱い相関にとどめる */
+const SEASONS=["極早生","早生","中生","晩生","春"];
+const SEASON_MIN=0.06, SEASON_STEP=0.085, SEASON_PULL=0.45, TECH_SPILL=0.40;
 const AREA_SENS=0.030, AREA_DOWN=-0.018, AREA_UP=0.022, AREA_MIN=2000, AREA_MAX=13000;
 
 /* 品種。交配・枝変わりとも農研機構および各県の公表資料にもとづく実在の関係 */
 const V={
-  miyagawa:{n:"宮川早生",k:"早生温州",grow:1,yld:1.00,price:1.00,req:0,
+  miyagawa:{n:"宮川早生",k:"早生温州",s:1,grow:1,yld:1.00,price:1.00,req:0,
     note:"県内の主力。1925年に福岡で在来温州の枝変わりとして見出された。"},
-  okitsu:{n:"興津早生",k:"早生温州",grow:1,yld:1.06,price:0.98,req:0,
+  okitsu:{n:"興津早生",k:"早生温州",s:1,grow:1,yld:1.06,price:0.98,req:0,
     note:"宮川早生の珠心胚実生から選抜された早生温州。"},
 
-  ponkan:{n:"ポンカン",k:"中晩柑",grow:1,yld:0.80,price:1.25,req:15,
+  ponkan:{n:"ポンカン",k:"中晩柑",s:2,grow:1,yld:0.80,price:1.25,req:15,
     note:"インド原産。香りが高く、タンゴール育種の重要な父本。"},
 
-  miho:{n:"三保早生",k:"早生温州",mat:1,grow:1,cost:30,lead:1,orig:"在来",
+  miho:{n:"三保早生",k:"早生温州",s:1,mat:1,grow:1,cost:30,lead:1,orig:"在来",
     yld:1.00,price:0.96,req:0,
     note:"早生温州のひとつ。南香の母本として知られる。"},
-  otsu4:{n:"大津四号",k:"中生温州",mat:1,grow:1,cost:35,lead:1,orig:"高糖系の温州",
+  otsu4:{n:"大津四号",k:"中生温州",s:2,mat:1,grow:1,cost:35,lead:1,orig:"高糖系の温州",
     yld:0.95,price:1.30,req:38,
     note:"高糖度で浮皮が出にくい中生温州。隔年結果が出やすく、摘果の手間がかかる。"},
-  otsu8:{n:"大津八号",k:"中生温州",mat:1,grow:1,cost:35,lead:1,orig:"高糖系の温州",
+  otsu8:{n:"大津八号",k:"中生温州",s:2,mat:1,grow:1,cost:35,lead:1,orig:"高糖系の温州",
     yld:0.98,price:1.32,req:38,
     note:"高糖系の温州みかん。大分果研4号の母本として使われた。"},
-  trovita:{n:"トロビタオレンジ",k:"オレンジ",mat:1,grow:1,cost:60,lead:2,orig:"米国育成",
+  trovita:{n:"トロビタオレンジ",k:"オレンジ",s:4,mat:1,grow:1,cost:60,lead:2,orig:"米国育成",
     yld:0.70,price:1.20,req:60,
     note:"スイートオレンジ。日本のタンゴール育種はこの父本から始まった。日本では作りにくい。"},
-  clementine:{n:"クレメンティン",k:"マンダリン",mat:1,grow:1,cost:70,lead:2,orig:"地中海",
+  clementine:{n:"クレメンティン",k:"マンダリン",s:2,mat:1,grow:1,cost:70,lead:2,orig:"地中海",
     yld:0.72,price:1.30,req:55,
     note:"地中海のマンダリン。早熟で種が少ないが、日本の気候には合わせにくい。"},
-  encore:{n:"アンコール",k:"マンダリン",mat:1,grow:1,cost:80,lead:3,orig:"米国育成",
+  encore:{n:"アンコール",k:"マンダリン",s:4,mat:1,grow:1,cost:80,lead:3,orig:"米国育成",
     yld:0.70,price:1.90,req:58,
     note:"米国育成の晩生マンダリン。濃厚な食味を子に伝える。それ自体も高値がつく。"},
-  marcott:{n:"マーコット",k:"マンダリン",mat:1,grow:1,cost:80,lead:3,orig:"米国育成",
+  marcott:{n:"マーコット",k:"マンダリン",s:4,mat:1,grow:1,cost:80,lead:3,orig:"米国育成",
     yld:0.72,price:1.85,req:60,
     note:"米国育成。高糖度で果皮が薄いが、種が多く浮皮も出やすい。"},
-  page:{n:"ページ",k:"タンゴール",mat:1,grow:1,cost:70,lead:2,orig:"米国育成",
+  page:{n:"ページ",k:"タンゴール",s:3,mat:1,grow:1,cost:70,lead:2,orig:"米国育成",
     yld:0.75,price:1.40,req:55,
     note:"米国育成のタンゴール。多汁で無核性を伝える。小果で収量は多くない。"},
-  ogon:{n:"黄金柑",k:"雑柑",mat:1,grow:1,cost:50,lead:2,orig:"在来",
+  ogon:{n:"黄金柑",k:"雑柑",s:4,mat:1,grow:1,cost:50,lead:2,orig:"在来",
     yld:0.55,price:1.80,req:45,
     note:"小果の在来柑橘。さわやかな香りをもち、希少さで高値がつく。"},
-  hyuganatsu:{n:"日向夏",k:"雑柑",mat:1,grow:1,cost:50,lead:2,orig:"宮崎原産",
+  hyuganatsu:{n:"日向夏",k:"雑柑",s:4,mat:1,grow:1,cost:50,lead:2,orig:"宮崎原産",
     yld:0.85,price:1.35,req:30,
     note:"白い内皮ごと食べる独特の柑橘。産地の看板になりうる。"},
 
   /* 枝変わりで現れる品種 */
-  yura:{n:"ゆら早生",k:"極早生温州",grow:1,sport:"miyagawa",yld:0.85,price:1.40,req:35,
+  yura:{n:"ゆら早生",k:"極早生温州",s:0,grow:1,sport:"miyagawa",yld:0.85,price:1.40,req:35,
     real:"1985年・和歌山県由良町",note:"宮川早生の枝変わり。極早生としては糖度が高い。"},
-  ueno:{n:"上野早生",k:"早生温州",grow:1,sport:"miyagawa",yld:1.00,price:1.18,req:28,
+  ueno:{n:"上野早生",k:"早生温州",s:1,grow:1,sport:"miyagawa",yld:1.00,price:1.18,req:28,
     real:"佐賀県",note:"宮川早生の枝変わり。着色が早く浮皮が出にくい。"},
-  obarabeni:{n:"小原紅早生",k:"早生温州",grow:1,sport:"miyagawa",yld:0.85,price:1.55,req:40,
+  obarabeni:{n:"小原紅早生",k:"早生温州",s:1,grow:1,sport:"miyagawa",yld:0.85,price:1.55,req:40,
     real:"1973年発見・1993年登録（香川県坂出市）",
     note:"宮川早生の枝変わり。温州みかんでもっとも果皮が紅い。見た目で高く売れる。"},
-  nichinan:{n:"日南1号",k:"極早生温州",grow:1,sport:"okitsu",yld:0.95,price:1.22,req:30,
+  nichinan:{n:"日南1号",k:"極早生温州",s:0,grow:1,sport:"okitsu",yld:0.95,price:1.22,req:30,
     real:"宮崎県",note:"興津早生の枝変わり。極早生の主力となった。"},
-  daimasaki:{n:"大将季",k:"タンゴール",grow:1,sport:"shiranui",yld:0.85,price:2.70,req:55,
+  daimasaki:{n:"大将季",k:"タンゴール",s:4,grow:1,sport:"shiranui",yld:0.85,price:2.70,req:55,
     real:"2006年・鹿児島県農家登録",note:"不知火の枝変わり。果皮と果肉の橙色がより濃い。"},
 
   /* 交雑育種で得られる品種 */
-  awaorange:{n:"阿波オレンジ",k:"タンゴール",grow:1,gen:1,cross:["hyuganatsu","trovita"],
+  awaorange:{n:"阿波オレンジ",k:"タンゴール",s:4,grow:1,gen:1,cross:["hyuganatsu","trovita"],
     yld:0.78,price:1.55,req:32,real:"1981年命名・徳島県果樹試験場の育成第1号",
     note:"小ぶりだが糖度が高く、皮がむきやすい。貯蔵後も味が落ちにくい。"},
-  himenotsuki:{n:"ひめのつき",k:"タンゴール",grow:1,gen:1,cross:["encore","hyuganatsu"],
+  himenotsuki:{n:"ひめのつき",k:"タンゴール",s:4,grow:1,gen:1,cross:["encore","hyuganatsu"],
     yld:0.80,price:1.70,req:40,real:"2006年登録（愛媛県）",
     note:"やや扁平。甘みは中くらいで、しっかりした酸味とさっぱりした風味。"},
-  kiyomi:{n:"清見",k:"タンゴール",grow:1,gen:1,cross:["miyagawa","trovita"],
+  kiyomi:{n:"清見",k:"タンゴール",s:4,grow:1,gen:1,cross:["miyagawa","trovita"],
     yld:0.88,price:1.50,req:30,real:"1949年交配・1979年登録",
     note:"日本初のタンゴール。以後の品種のほとんどがここから派生する。"},
-  nanko:{n:"南香",k:"タンゴール",grow:1,gen:1,cross:["miho","clementine"],
+  nanko:{n:"南香",k:"タンゴール",s:2,grow:1,gen:1,cross:["miho","clementine"],
     yld:0.85,price:1.45,req:30,real:"1970年交雑・1989年登録",
     note:"口之津5号。それ自体より、親としての価値が大きい。"},
-  nishinoka:{n:"西之香",k:"タンゴール",grow:1,gen:2,cross:["kiyomi","trovita"],
+  nishinoka:{n:"西之香",k:"タンゴール",s:3,grow:1,gen:2,cross:["kiyomi","trovita"],
     yld:0.82,price:1.65,req:40,real:"1966年交雑",
     note:"清見をトロビタオレンジに戻し交雑した系統。"},
-  tsunoka:{n:"津之香",k:"タンゴール",grow:1,gen:2,cross:["kiyomi","okitsu"],
+  tsunoka:{n:"津之香",k:"タンゴール",s:3,grow:1,gen:2,cross:["kiyomi","okitsu"],
     yld:0.85,price:1.50,req:38,real:"1972年交雑・1990年登録",
     note:"口之津12号。清見と温州の組合せ。"},
-  tenka:{n:"天香",k:"タンゴール",grow:1,gen:2,cross:["kiyomi","encore"],
+  tenka:{n:"天香",k:"タンゴール",s:4,grow:1,gen:2,cross:["kiyomi","encore"],
     yld:0.78,price:1.75,req:45,real:"口之津17号",
     note:"清見にアンコールを交雑した系統。香りが高い。"},
-  shiranui:{n:"不知火",k:"タンゴール",grow:1,gen:2,cross:["kiyomi","ponkan"],
+  shiranui:{n:"不知火",k:"タンゴール",s:4,grow:1,gen:2,cross:["kiyomi","ponkan"],
     yld:0.88,price:2.40,req:50,real:"1972年交雑",
     note:"デコポンの名で知られる。果頂部の凸が目印。"},
-  harumi:{n:"はるみ",k:"タンゴール",grow:1,gen:2,cross:["kiyomi","ponkan"],
+  harumi:{n:"はるみ",k:"タンゴール",s:3,grow:1,gen:2,cross:["kiyomi","ponkan"],
     yld:0.86,price:2.00,req:45,real:"1999年登録・不知火と同じ組合せ",
     note:"果肉がやわらかく、じょうのうごと食べられる。"},
-  haruki:{n:"はるき",k:"タンゴール",grow:1,gen:2,cross:["kiyomi","ponkan"],
+  haruki:{n:"はるき",k:"タンゴール",s:4,grow:1,gen:2,cross:["kiyomi","ponkan"],
     yld:0.80,price:2.20,req:52,real:"和歌山県果樹試験場・清見×中野3号ポンカン",
     note:"3月に熟す中晩柑。遅くまで樹上に置ける。"},
-  setomi:{n:"せとみ",k:"タンゴール",grow:1,gen:2,cross:["kiyomi","ponkan"],
+  setomi:{n:"せとみ",k:"タンゴール",s:4,grow:1,gen:2,cross:["kiyomi","ponkan"],
     yld:0.82,price:2.50,req:58,real:"1981年交雑・2004年登録（山口県）",
     note:"ブランド名は「ゆめほっぺ」。大玉で、じょうのうごと食べられる。"},
-  himekoharu:{n:"媛小春",k:"タンゴール",grow:1,gen:2,cross:["kiyomi","ogon"],
+  himekoharu:{n:"媛小春",k:"タンゴール",s:4,grow:1,gen:2,cross:["kiyomi","ogon"],
     yld:0.72,price:1.90,req:48,real:"2008年登録",
     note:"黄金柑ゆずりの香り。小果で収量は多くない。"},
-  amakusa:{n:"天草",k:"タンゴール",grow:1,gen:3,cross:["tsunoka","page"],
+  amakusa:{n:"天草",k:"タンゴール",s:3,grow:1,gen:3,cross:["tsunoka","page"],
     yld:0.82,price:2.05,req:55,real:"1982年交雑・1993年農林認定",
     note:"（清見×興津早生）にページを交雑。果皮が美しい。"},
-  kanpei:{n:"甘平",k:"タンゴール",grow:1,gen:3,cross:["nishinoka","ponkan"],
+  kanpei:{n:"甘平",k:"タンゴール",s:3,grow:1,gen:3,cross:["nishinoka","ponkan"],
     yld:0.70,price:3.00,req:65,real:"2007年登録",
     note:"薄皮で果肉がぎっしり。裂果しやすく栽培は難しい。"},
-  nijumaru:{n:"にじゅうまる",k:"タンゴール",grow:1,gen:3,cross:["nishinoka","ponkan"],
+  nijumaru:{n:"にじゅうまる",k:"タンゴール",s:4,grow:1,gen:3,cross:["nishinoka","ponkan"],
     yld:0.78,price:2.80,req:58,real:"佐賀果試35号・2017年登録（佐賀県）",
     note:"甘平と同じ組合せから選ばれた近縁の系統。甘平より作りやすい。"},
-  setoka:{n:"せとか",k:"タンゴール",grow:1,gen:3,cross:["tenka","marcott"],
+  setoka:{n:"せとか",k:"タンゴール",s:4,grow:1,gen:3,cross:["tenka","marcott"],
     yld:0.70,price:3.20,req:70,real:"口之津37号×マーコット",
     note:"とろけるような食感。高単価だが栽培の難度が高い。"},
-  reiko:{n:"麗紅",k:"タンゴール",grow:1,gen:3,cross:["tenka","marcott"],
+  reiko:{n:"麗紅",k:"タンゴール",s:3,grow:1,gen:3,cross:["tenka","marcott"],
     yld:0.76,price:2.60,req:60,real:"せとかと同じ組合せの別個体",
     note:"果皮が橙紅色で美しく、外観で売れる。"},
-  tsunokagayaki:{n:"津之輝",k:"タンゴール",grow:1,gen:3,cross:["tsunoka","encore"],
+  tsunokagayaki:{n:"津之輝",k:"タンゴール",s:3,grow:1,gen:3,cross:["tsunoka","encore"],
     yld:0.82,price:2.30,req:58,real:"1984年交雑・2009年登録",
     note:"（清見×興津早生）にアンコールを交雑。食味が濃い。"},
-  oita4:{n:"大分果研4号",k:"タンゴール",grow:1,gen:4,cross:["otsu8","amakusa"],
+  oita4:{n:"大分果研4号",k:"タンゴール",s:3,grow:1,gen:4,cross:["otsu8","amakusa"],
     yld:0.80,price:2.60,req:62,real:"2009年発表（大分県）・商品名「サンセレブ」",
     note:"大津八号に天草を交配。ゼリーのような食感で、年内に収穫できる。"},
-  benimadonna:{n:"紅まどんな",k:"タンゴール",grow:1,gen:4,cross:["nanko","amakusa"],
+  benimadonna:{n:"紅まどんな",k:"タンゴール",s:3,grow:1,gen:4,cross:["nanko","amakusa"],
     yld:0.74,price:3.50,req:75,real:"2005年登録",
     note:"南香に天草を交雑。ゼリーのような果肉で、産地の顔になる。"}
 };
@@ -406,6 +408,17 @@ Object.keys(V).forEach(id=>{
   if(V[id].sport){(SPORT[V[id].sport]=SPORT[V[id].sport]||[]).push(id);}
 });
 
+/* 近縁の品種。親子と、同じ交配・同じ親の枝変わりから出た兄弟 */
+const KIN={};
+(function(){
+  const link=(a,b)=>{if(a===b)return;(KIN[a]=KIN[a]||[]).push(b);(KIN[b]=KIN[b]||[]).push(a);};
+  Object.keys(V).forEach(id=>{
+    if(V[id].cross) V[id].cross.forEach(p=>link(id,p));
+    if(V[id].sport) link(id,V[id].sport);
+  });
+  const sibs=g=>Object.values(g).forEach(ids=>ids.forEach(a=>ids.forEach(b=>link(a,b))));
+  sibs(CROSS); sibs(SPORT);
+})();
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const yen=n=>Math.round(n).toLocaleString("ja-JP")+"百万円";
 const ha=n=>Math.round(n).toLocaleString("ja-JP");
@@ -450,6 +463,13 @@ function awFactor(id){
   return (1-span*0.45)+effAware(id)/100*span;
 }
 function techDiff(id){return 1+(V[id].req||0)/120;}
+/* 近縁品種の栽培暦は流用できる。最も進んだ近縁の4割までは、予算なしで届く */
+function kinTech(id,src){
+  const k=KIN[id]; if(!k) return 0;
+  const t=src||state.tech;
+  let best=0; k.forEach(x=>{if(state.owned[x])best=Math.max(best,(t[x]||0));});
+  return best*TECH_SPILL;
+}
 function techFromCum(id,cum){return Math.min(100,TECH_K*Math.log(1+Math.max(0,cum)/(TECH_S*techDiff(id))));}
 function cumFromTech(id,t){return TECH_S*techDiff(id)*(Math.exp(t/TECH_K)-1);}
 function pipeOf(id){return state.pipe[id]||(state.pipe[id]=new Array(CFG.lagYears).fill(0));}
@@ -464,6 +484,15 @@ function effAware(id){
   const own=state.aware[id]||0,pf=prefAware();
   return clamp(Math.max(own,pf*0.55)+pf*0.15,0,100);
 }
+/* 出荷期ごとの作付割合。周年で棚を押さえられる産地ほど単価が上がる */
+function seasonShares(){
+  const by=[0,0,0,0,0]; let tot=0;
+  growable().forEach(id=>{const a=state.area[id]||0;const si=V[id].s;
+    if(a<=0||si==null)return; by[si]+=a; tot+=a;});
+  return tot>0?by.map(a=>a/tot):by;
+}
+function seasonCover(){return seasonShares().filter(x=>x>=SEASON_MIN).length;}
+function seasonBonus(){return 1+SEASON_STEP*Math.max(0,seasonCover()-1);}
 function output(){
   let o=0;
   growable().forEach(id=>{
@@ -473,7 +502,7 @@ function output(){
     const q=v.req?(t>=v.req?1:0.60+t/v.req*0.40):1;
     o+=ar*CFG.revPerHa*v.yld*priceOf(id)*ty*q*awFactor(id);
   });
-  return o;
+  return o*seasonBonus();
 }
 function share(){return state.national>0?output()/state.national:0;}
 /* 産地が植えたくなる度合い。栽培法が確立していない品種は誰も植えない */
@@ -481,7 +510,9 @@ function appeal(id){
   const v=V[id],t=state.tech[id]||0,a=effAware(id),need=v.req||1;
   if(v.req&&t<v.req*0.6) return 0.02;
   const tf=clamp(t/need,0,1.25),af=0.25+a/100*1.15;
-  return priceOf(id)*v.yld*tf*af;
+  let gap=1;
+  if(v.s!=null){const sh=seasonShares()[v.s]||0;gap=1+(1-clamp(sh/SEASON_MIN,0,1))*SEASON_PULL;}
+  return priceOf(id)*v.yld*tf*af*gap;
 }
 /* 面積加重の実効単価。着任時を1.0とした比で面積が動く */
 function avgPrice(){
@@ -580,11 +611,12 @@ function advanceYear(){
   const notices=[],before={share:share(),pref:prefAware()};
   const newV=[],sports=[];
 
+  const prevTech={}; growable().forEach(id=>prevTech[id]=state.tech[id]||0);
   growable().forEach(id=>{
     const c=state.alloc.tech[id]||0;
     if(c>0) state.techCum[id]=(state.techCum[id]||0)+c;
     else state.techCum[id]=(state.techCum[id]||0)*TECH_FADE;
-    const target=techFromCum(id,state.techCum[id]);
+    const target=Math.max(techFromCum(id,state.techCum[id]),kinTech(id,prevTech));
     state.tech[id]=clamp(Math.min(target,(state.tech[id]||0)+TECH_MAXRISE),0,100);
   });
   growable().forEach(id=>{
@@ -768,7 +800,7 @@ function renderVarieties(){
     return '<div class="vc '+(ar>0?"on":"")+(cold?" cold":"")+'">'
       +'<div class="vhead"><span class="vt">'+esc(v.n)+'</span>'
       +'<span class="varea">'+ha(ar)+' ha'+(pipe>1?' <span class="pipe">+'+ha(pipe)+'</span>':'')+'</span></div>'
-      +'<p class="vsub">'+esc(v.k)+'・'+esc(origin)+(v.real?'（'+esc(v.real)+'）':'')+'</p>'
+      +'<p class="vsub">'+esc(v.k)+(v.s!=null?'・'+SEASONS[v.s]:'')+'・'+esc(origin)+(v.real?'（'+esc(v.real)+'）':'')+'</p>'
       +gauge("栽培技術",t,"var(--gov)",v.req||0)
       +'<input type="range" data-t="'+id+'" min="0" max="120" step="5" value="'
         +(state.alloc.tech[id]||0)+'">'
@@ -783,7 +815,8 @@ function renderVarieties(){
       +(v.req?'<span class="'+(t<v.req?"neg":"")+'">必要技術 '+v.req+'</span>':'')
       +'<span>実効認知 '+ea.toFixed(0)+'</span>'
       +'<span>認知による単価 ×'+awFactor(id).toFixed(2)+'</span>'
-      +'<span>技術の頭打ち '+techFromCum(id,state.techCum[id]||0).toFixed(0)+'</span>'
+      +'<span>技術の頭打ち '+Math.max(techFromCum(id,state.techCum[id]||0),kinTech(id)).toFixed(0)
+      +(kinTech(id)>techFromCum(id,state.techCum[id]||0)?'（近縁から）':'')+'</span>'
       +'<span>産出額 '+ha(o)+'</span>'
       +(sp>0?'<span>枝変わり '+(sp*100).toFixed(1)+'%</span>':'')+'</div>'
       +(cold?'<p class="vsub" style="color:var(--bad);margin:5px 0 0">栽培法が固まっていません。'
@@ -893,6 +926,14 @@ function renderHowto(){
     +'<div class="notice"><b>産地間の価格競争で、どの品種も年1.8%ずつ値を下げます。</b>'
     +'古い品種を作り続けるだけでは産地は細ります。自分で育種した品種と園地で見つけた枝変わりは'
     +'満額から始まりますが、よそから導入した品種はすでに15%安いところから始まります。</div>'
+    +'<div class="notice"><b>出荷期をそろえると単価が上がります。</b>'
+    +'品種には極早生・早生・中生・晩生・春の熟期があり、作付が6%以上を占める区分の数に応じて'
+    +'全品種の単価が1区分あたり'+(SEASON_STEP*100).toFixed(1)+'%上がります。単価の高い中晩柑は'
+    +'春と晩生に偏っているので、そろえようとすれば安い温州も残すことになります。</div>'
+    +'<div class="notice"><b>近縁品種は栽培技術を融通し合います。</b>'
+    +'親・子・同じ交配から出た兄弟・同じ親の枝変わりのうち、最も進んだものの'
+    +(TECH_SPILL*100).toFixed(0)+'%までは予算なしで届きます。'
+    +'系統をばらばらに集めるより、ひと続きの系統を束で育てるほうが効きます。</div>'
     +'<div class="notice"><b>県内の栽培面積も単価に反応します。</b>'
     +'平均単価が着任時を下回ると離農が進み、条件の悪い園地から順に手放されます。'
     +'単価が上向けば少しずつ新植が入りますが、結果樹になるのは'+CFG.lagYears+'年後です。</div>'
