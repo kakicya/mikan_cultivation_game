@@ -194,7 +194,7 @@ tbody tr:last-child td{border-bottom:0}
   padding-top:5px;border-top:1px dotted var(--line)}
 .vfoot span{font-variant-numeric:tabular-nums}
 .pipe{font-size:.66rem;color:var(--accent)}
-#tabbar .seg{grid-template-columns:repeat(3,1fr)}
+#tabbar .seg{grid-template-columns:repeat(4,1fr)}
 .hint-tbl td.q{color:var(--ink-3)}
 .hint-tbl td.ok{color:var(--accent)}
 .hint-tbl tr.dim{opacity:.55}
@@ -252,11 +252,6 @@ tbody tr:last-child td{border-bottom:0}
       </div>
 
       <div class="card">
-        <div class="chead"><h2>遺伝資源の導入</h2><p class="sub">交配の親にも、そのまま栽培にも使える</p></div>
-        <div id="imports"></div>
-      </div>
-
-      <div class="card">
         <div class="chead"><h2>今年度予算</h2><p class="sub" id="alloc-sub"></p></div>
         <div id="alloc"></div>
         <button class="btn primary" id="advance" style="margin-top:10px">1年目を終える</button>
@@ -304,9 +299,6 @@ const V={
   okitsu:{n:"興津早生",k:"早生温州",s:1,mat:1,grow:1,cost:30,lead:1,orig:"在来",
     yld:1.06,price:0.98,req:0,
     note:"宮川早生の珠心胚実生から選抜された早生温州。多くの枝変わりの母体でもある。"},
-  kusumoto:{n:"楠本早生",k:"早生温州",s:1,mat:1,grow:1,cost:30,lead:1,orig:"在来",
-    yld:1.00,price:0.98,req:0,
-    note:"早生温州のひとつ。肥のあけぼのの母本として知られる。"},
   miho:{n:"三保早生",k:"早生温州",s:1,mat:1,grow:1,cost:30,lead:1,orig:"在来",
     yld:1.00,price:0.96,req:0,
     note:"早生温州のひとつ。南香の母本として知られる。"},
@@ -361,9 +353,6 @@ const V={
   taguchi:{n:"田口早生",k:"早生温州",s:1,grow:1,sport:"okitsu",how:"枝変わり",
     yld:1.00,price:1.20,req:30,real:"1978年発見・1995年登録（和歌山県・田口耕作氏）",
     note:"興津早生の枝変わり。11月に糖度11〜12度に達し、樹上に置くとさらに上がる。"},
-  hinoakebono:{n:"肥のあけぼの",k:"極早生温州",s:0,grow:1,sport:"kusumoto",how:"珠心胚実生",
-    yld:0.88,price:1.30,req:33,real:"1983年交配・1995年登録（熊本県）",
-    note:"楠本早生に川野なつだいだいを交配した珠心胚実生。10月下旬から出せる。"},
   nichinan:{n:"日南1号",k:"極早生温州",s:0,grow:1,sport:"okitsu",how:"枝変わり",yld:0.95,price:1.22,req:30,
     real:"宮崎県",note:"興津早生の枝変わり。極早生の主力となった。"},
   daimasaki:{n:"大将季",k:"タンゴール",s:4,grow:1,sport:"shiranui",how:"枝変わり",yld:0.85,price:2.70,req:55,
@@ -635,6 +624,11 @@ function budgetOf(){
 }
 function crossOutcomes(a,b){return (a&&b&&a!==b)?(CROSS[CKEY(a,b)]||[]):[];}
 function crossRemaining(a,b){return crossOutcomes(a,b).filter(id=>!state.owned[id]);}
+/* その母本と組んで、まだ系統が残っている相手 */
+function crossPartners(a){
+  if(!a) return [];
+  return Object.keys(state.owned).filter(b=>V[b]&&b!==a&&crossRemaining(a,b).length);
+}
 function projectGen(a,b){const o=crossOutcomes(a,b);return o.length?V[o[0]].gen:0;}
 function plan(){
   const b=budgetOf();
@@ -899,23 +893,29 @@ function renderBreeding(){
         +'選抜される可能性があります。予算を厚くすると確率が上がります。</p>':'')
       +'</div>';
   });
-  const own=Object.keys(state.owned).filter(id=>V[id]);
-  const opt=sel=>'<option value="">—</option>'+own.map(id=>'<option value="'+id+'"'
+  /* 成立しない組合せは選択肢に出さない */
+  const parents=Object.keys(state.owned).filter(id=>V[id]&&crossPartners(id).length);
+  let a=state.pick.a; if(a&&parents.indexOf(a)<0){a="";state.pick.a="";state.pick.b="";}
+  const mates=crossPartners(a);
+  let b=state.pick.b; if(b&&mates.indexOf(b)<0){b="";state.pick.b="";}
+  const opt=(ids,sel)=>'<option value="">—</option>'+ids.map(id=>'<option value="'+id+'"'
     +(sel===id?' selected':'')+'>'+esc(V[id].n)+'</option>').join("");
-  const a=state.pick.a,b=state.pick.b;
-  const outs=crossOutcomes(a,b),rem=crossRemaining(a,b);
-  let verdict='<p class="hint">母本と父本を選んでください。いま持っている品種の組合せでしか交配できません。</p>',can=false;
-  if(a&&b&&a===b) verdict='<p class="hint">同じ品種どうしは交配できません。</p>';
-  else if(a&&b&&rem.length){
+  const rem=crossRemaining(a,b);
+  let verdict,can=false;
+  if(!parents.length) verdict='<div class="notice">いま持っている品種では、新しい系統を狙える'
+    +'組合せがありません。遺伝資源を導入するか、育成した品種を親に使ってください。</div>';
+  else if(!a) verdict='<p class="hint">母本を選んでください。父本は、その母本と組める品種だけが並びます。</p>';
+  else if(!b) verdict='<p class="hint">父本を選んでください。ここに並ぶのは、まだ系統が残っている'
+    +'組合せだけです。</p>';
+  else{
     const g=GEN[projectGen(a,b)];
-    verdict='<div class="notice good">有望な組合せです。最短 <b>'+g.years+'年</b>・累計 <b>'
-      +g.need+'百万円</b> が目安です。この組合せからは、まだ <b>'+rem.length
-      +'系統</b> が期待できます'+(rem.length>1?'。どれが選抜されるかは分かりません':'')+'。</div>';
+    verdict='<div class="notice good">最短 <b>'+g.years+'年</b>・累計 <b>'+g.need
+      +'百万円</b> が目安です。この組合せからは、まだ <b>'+rem.length+'系統</b> が期待できます'
+      +(rem.length>1?'。どれが選抜されるかは分かりません':'')+'。</div>';
     can=state.projects.length<CFG.maxProjects;
-  }else if(a&&b&&outs.length) verdict='<div class="notice warn">この組合せからは、すでに系統を得ています。</div>';
-  else if(a&&b) verdict='<div class="notice">この組合せから有望な個体は期待できません。</div>';
-  h+='<div class="alloc"><label>母本</label><select id="pick-a">'+opt(a)+'</select></div>'
-    +'<div class="alloc"><label>父本</label><select id="pick-b">'+opt(b)+'</select></div>'
+  }
+  h+='<div class="alloc"><label>母本</label><select id="pick-a">'+opt(parents,a)+'</select></div>'
+    +(a?'<div class="alloc"><label>父本</label><select id="pick-b">'+opt(mates,b)+'</select></div>':'')
     +verdict
     +'<button class="btn" data-act="start" style="margin-top:7px"'+(can?"":" disabled")+'>交配を始める</button>'
     +(state.projects.length>=CFG.maxProjects?'<p class="hint">同時に進められるのは'
@@ -938,16 +938,17 @@ function renderImports(){
         +'<button class="btn" style="margin-top:5px" data-act="import" data-id="'+id
         +'">導入する</button></div>';}).join("")+'</div>';
   else if(!state.imports.length) h='<p class="quiet">導入できる素材はすべて手に入れました。</p>';
-  $("imports").innerHTML=h;
+  $("howto").innerHTML=h;
 }
 function arrow(a,b,d){
   const v=b-a;
   if(Math.abs(v)<0.005) return '<span class="quiet">±0</span>';
   return '<span class="'+(v<0?"neg":"")+'">'+(v>0?"+":"")+v.toFixed(d||1)+'</span>';
 }
-const TABS=[["howto","仕組み"],["cross","交配の手がかり"],["sport","枝変わりの手がかり"]];
+const TABS=[["howto","仕組み"],["cross","交配"],["sport","枝変わり"],["import","遺伝資源"]];
 const TABSUB={howto:"40年の産地づくり",cross:"いま持っている品種の組合せでしか交配できない",
-  sport:"園地の面積と栽培技術が、偶然を引き寄せる"};
+  sport:"園地の面積と栽培技術が、偶然を引き寄せる",
+  import:"交配の親にも、そのまま栽培にも使える"};
 function renderTabs(){
   const t=state.tab||"howto";
   $("tab-sub").textContent=TABSUB[t]||"";
@@ -956,6 +957,7 @@ function renderTabs(){
     +l+'</button>').join("")+'</div>';
   if(t==="cross") renderCrossHints();
   else if(t==="sport") renderSportHints();
+  else if(t==="import") renderImports();
   else renderHowto();
 }
 function renderCrossHints(){
@@ -1175,7 +1177,7 @@ function readouts(){
 }
 function renderAll(){
   renderHeader();renderComposition();renderVarieties();renderAlloc();
-  renderBreeding();renderImports();renderReport();renderRecords();renderTabs();readouts();
+  renderBreeding();renderReport();renderRecords();renderTabs();readouts();
 }
 let resetArmed=false;
 function bindOnce(){
@@ -1193,7 +1195,7 @@ function bindOnce(){
   document.addEventListener("change",e=>{
     const t=e.target,d=t.dataset||{};
     if(d.sp!==undefined||d.pb!==undefined){save();renderAll();return;}
-    if(t.id==="pick-a"){state.pick.a=t.value;save();renderBreeding();return;}
+    if(t.id==="pick-a"){state.pick.a=t.value;state.pick.b="";save();renderBreeding();return;}
     if(t.id==="pick-b"){state.pick.b=t.value;save();renderBreeding();return;}
   });
   document.addEventListener("click",e=>{
