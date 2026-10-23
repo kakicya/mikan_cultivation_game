@@ -270,7 +270,7 @@ tbody tr:last-child td{border-bottom:0}
 /* ============ 設定 ============ */
 const CFG={
   runYears:40, baseBudget:320, areaTotal:5000, revPerHa:2.3,
-  startShare:0.042, nationalGrowth:0.0005,
+  startShare:0.042, nationalGrowth:-0.004,
   maxProjects:3, lagYears:5, convertBase:0.060,
   sportBase:0.030
 };
@@ -283,8 +283,11 @@ const TECH_K=18, TECH_S=6, TECH_MAXRISE=9, TECH_FADE=0.995, AWARE_FADE=0.8;
 const PRICE_DECAY=0.982, PRICE_FLOOR=0.55, PRICE_START_MAT=0.85, PRICE_START_OLD=0.78;
 /* 単価が安ければ離農が進み、高ければ少しずつ新植が増える。弱い相関にとどめる */
 const SEASONS=["極早生","早生","中生","晩生","春"];
-const SEASON_MIN=0.06, SEASON_STEP=0.085, SEASON_PULL=0.45, TECH_SPILL=0.40;
-const AREA_SENS=0.030, AREA_DOWN=-0.018, AREA_UP=0.022, AREA_MIN=2000, AREA_MAX=13000;
+const SEASON_MIN=0.06, SEASON_STEP=0.100, SEASON_PULL=0.45, TECH_SPILL=0.40;
+/* 同じ時期に出回る量が多いほど市場で値崩れする。割合ではなく実際の面積で決まるので、
+   産地を広げるほど、時期を散らさないと自分で値を崩すことになる */
+const GLUT_HA=1800, GLUT_SCALE=9000, GLUT_FLOOR=0.50;
+const AREA_SENS=0.050, AREA_DOWN=-0.022, AREA_UP=0.045, AREA_MIN=2000, AREA_MAX=20000;
 
 /* 品種。交配・枝変わりとも農研機構および各県の公表資料にもとづく実在の関係 */
 const V={
@@ -523,6 +526,18 @@ function seasonShares(){
   return tot>0?by.map(a=>a/tot):by;
 }
 function seasonCover(){return seasonShares().filter(x=>x>=SEASON_MIN).length;}
+/* その時期に出回る面積そのもので値が決まる */
+function seasonAreas(){
+  const by=[0,0,0,0,0];
+  growable().forEach(id=>{const a=state.area[id]||0,si=V[id].s;
+    if(a>0&&si!=null) by[si]+=a;});
+  return by;
+}
+function glutFactor(si){
+  if(si==null) return 1;
+  const a=seasonAreas()[si]||0;
+  return a<=GLUT_HA?1:Math.max(GLUT_FLOOR,1-(a-GLUT_HA)/GLUT_SCALE);
+}
 function seasonBonus(){return 1+SEASON_STEP*Math.max(0,seasonCover()-1);}
 function output(){
   let o=0;
@@ -531,7 +546,7 @@ function output(){
     const t=state.tech[id]||0;
     const ty=0.62+t/100*0.95;
     const q=v.req?(t>=v.req?1:0.60+t/v.req*0.40):1;
-    o+=ar*CFG.revPerHa*v.yld*priceOf(id)*ty*q*awFactor(id);
+    o+=ar*CFG.revPerHa*v.yld*priceOf(id)*ty*q*awFactor(id)*glutFactor(v.s);
   });
   return o*seasonBonus();
 }
@@ -543,7 +558,7 @@ function appeal(id){
   const tf=clamp(t/need,0,1.25),af=0.25+a/100*1.15;
   let gap=1;
   if(v.s!=null){const sh=seasonShares()[v.s]||0;gap=1+(1-clamp(sh/SEASON_MIN,0,1))*SEASON_PULL;}
-  return priceOf(id)*v.yld*tf*af*gap;
+  return priceOf(id)*v.yld*tf*af*gap*glutFactor(v.s);
 }
 /* 面積加重の実効単価。着任時を1.0とした比で面積が動く */
 function avgPrice(){
@@ -827,7 +842,7 @@ function renderVarieties(){
     const v=V[id],ar=state.area[id]||0,t=state.tech[id]||0,aw=state.aware[id]||0;
     const ea=effAware(id),pipe=pipeSum(id),sp=sportChance(id);
     const ty=0.62+t/100*0.95,q=v.req?(t>=v.req?1:0.60+t/v.req*0.40):1;
-    const o=ar*CFG.revPerHa*v.yld*priceOf(id)*ty*q*awFactor(id);
+    const o=ar*CFG.revPerHa*v.yld*priceOf(id)*ty*q*awFactor(id)*glutFactor(v.s);
     const cold=v.req&&t<v.req*0.6;
     const origin=v.cross?v.cross.map(c=>V[c].n).join(" × ")
       :(v.sport?V[v.sport].n+" の"+(v.how||"枝変わり"):(v.orig||"在来"));
@@ -846,6 +861,8 @@ function renderVarieties(){
       +(v.req?'<span class="'+(t<v.req?"neg":"")+'">必要技術 '+v.req+'</span>':'')
       +'<span>実効認知 '+ea.toFixed(0)+'</span>'
       +'<span>認知による単価 ×'+awFactor(id).toFixed(2)+'</span>'
+      +(glutFactor(v.s)<0.995?'<span class="neg">出荷集中 ×'+glutFactor(v.s).toFixed(2)
+        +'（'+SEASONS[v.s]+' '+ha(seasonAreas()[v.s])+'ha）</span>':'')
       +'<span>技術の頭打ち '+Math.max(techFromCum(id,state.techCum[id]||0),kinTech(id)).toFixed(0)
       +(kinTech(id)>techFromCum(id,state.techCum[id]||0)?'（近縁から）':'')+'</span>'
       +'<span>産出額 '+ha(o)+'</span>'
@@ -1035,6 +1052,11 @@ function renderHowto(){
     +'品種には極早生・早生・中生・晩生・春の熟期があり、作付が6%以上を占める区分の数に応じて'
     +'全品種の単価が1区分あたり'+(SEASON_STEP*100).toFixed(1)+'%上がります。単価の高い中晩柑は'
     +'春と晩生に偏っているので、そろえようとすれば安い温州も残すことになります。</div>'
+    +'<div class="notice"><b>逆に、ひとつの時期に出回る量が増えると値崩れします。</b>'
+    +'ある熟期の作付が'+GLUT_HA.toLocaleString("ja-JP")+'haを超えると、1,000ha増えるごとに'
+    +'その熟期の品種の単価が約11%下がり、最大で'+((1-GLUT_FLOOR)*100).toFixed(0)+'%落ちます。'
+    +'割合ではなく面積そのもので決まるので、<b>産地を広げるほど時期を散らす必要があります</b>。'
+    +'高単価の品種は春と晩生に集まっているので、そこだけを追うと自分で値を崩すことになります。</div>'
     +'<div class="notice"><b>近縁品種は栽培技術を融通し合います。</b>'
     +'親・子・同じ交配から出た兄弟・同じ親の枝変わりのうち、最も進んだものの'
     +(TECH_SPILL*100).toFixed(0)+'%までは予算なしで届きます。'
