@@ -185,6 +185,10 @@ tbody tr:last-child td{border-bottom:0}
 .tip[hidden]{display:none!important}
 .tip .tr{display:flex;justify-content:space-between;gap:10px}
 .tip .tr b{font-variant-numeric:tabular-nums}
+.resultwrap canvas{display:block;width:100%;height:auto;border:1px solid var(--line)}
+#res-msg{min-height:1.2em}
+#res-msg.ok{color:var(--good)}
+#res-msg.ng{color:var(--bad)}
 .verdict{text-align:center;padding:4px 0}
 .verdict .rank{font-family:var(--display);font-size:2.2rem;line-height:1.1;color:var(--accent)}
 @media (prefers-reduced-motion:no-preference){
@@ -266,6 +270,16 @@ tbody tr:last-child td{border-bottom:0}
           </span></div>
         <div id="composition"></div>
         <div class="vg" id="varieties" style="margin-top:11px"></div>
+      </div>
+
+      <div class="card" id="result-card" hidden>
+        <div class="chead"><h2>任期の成果</h2><p class="sub" id="res-sub"></p></div>
+        <div class="resultwrap"><canvas id="res-canvas" width="1080" height="1560"></canvas></div>
+        <div class="btnrow" style="margin-top:9px">
+          <button class="btn" data-act="copyimg">画像をコピー</button>
+          <button class="btn" data-act="saveimg">画像を保存</button>
+        </div>
+        <p class="hint" id="res-msg">クリップボードにコピーして、そのまま貼り付けられます。</p>
       </div>
 
       <div class="card" id="report-card">
@@ -1204,6 +1218,245 @@ function renderHowto(){
     +'並の基準が着任時のシェアです。品種は年々値を下げるので、守るだけでも更新が要ります。'
     +'技術とPRを1品種に絞るほど伸びます。</p>';
 }
+/* ============ 任期の成果（画像） ============ */
+const RES_W=1080;
+function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()||"#000";}
+function resultData(){
+  const ids=growable().filter(id=>(state.area[id]||0)>=1)
+    .sort((a,b)=>(state.area[b]||0)-(state.area[a]||0));
+  const tot=ids.reduce((t,id)=>t+(state.area[id]||0),0);
+  const born=state.born||{};
+  const pick=f=>Object.keys(state.owned).filter(id=>V[id]&&f(V[id])&&born[id]!=null)
+    .sort((a,b)=>born[a]-born[b]).map(id=>V[id].n);
+  return {
+    share:share()*100, pref:prefAware(), total:tot, areas:ids.slice(0,6).map(id=>
+      ({n:V[id].n,a:state.area[id]||0,p:(state.area[id]||0)/(tot||1)*100,
+        c:cssVar(slotOf(id)>=6?"--ink-3":SERIES[slotOf(id)])})),
+    bred:pick(v=>v.gen), sports:pick(v=>v.sport), mats:pick(v=>v.mat&&!v.gen&&!v.sport),
+    count:growable().length, records:state.records.slice(),
+    verdict:state.verdict||{rank:"—",title:"",body:""}
+  };
+}
+/* 折り返して描き、次のyを返す */
+function wrapText(c,txt,x,y,w,lh,max){
+  const words=String(txt).split("");
+  let line="",n=0;
+  for(let i=0;i<words.length;i++){
+    const t=line+words[i];
+    if(c.measureText(t).width>w&&line){
+      c.fillText(line,x,y+n*lh); n++; line=words[i];
+      if(max&&n>=max){c.fillText("…",x,y+n*lh);return y+(n+1)*lh;}
+    } else line=t;
+  }
+  if(line)c.fillText(line,x,y+n*lh);
+  return y+(n+1)*lh;
+}
+function drawResult(){
+  const cv=$("res-canvas"); if(!cv) return;
+  const d=resultData();
+  const P=56, W=RES_W, inner=W-P*2;
+  /* いったん十分な高さに描いてから、中身の高さに切り詰める */
+  const tmp=document.createElement("canvas"); tmp.width=W; tmp.height=1900;
+  const c=tmp.getContext("2d");
+  const col_={bg:cssVar("--surface"),bg2:cssVar("--surface-2"),sunk:cssVar("--sunk"),
+    ink:cssVar("--ink"),ink2:cssVar("--ink-2"),ink3:cssVar("--ink-3"),
+    line:cssVar("--line"),ls:cssVar("--line-strong"),
+    accent:cssVar("--accent"),gov:cssVar("--gov"),good:cssVar("--good")};
+  const DF=n=>n+'px "BIZ UDPMincho","Hiragino Mincho ProN",serif';
+  const BF=n=>n+'px "BIZ UDPGothic","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif';
+  /* 計測で現在のフォントを壊さないよう、必ず元に戻す */
+  const wide=(t,f)=>{const k=c.font;c.font=f;const w=c.measureText(t).width;c.font=k;return w;};
+  const clip=(t,f,w)=>{const k=c.font;c.font=f;
+    let r=t;if(c.measureText(r).width>w){while(r.length>1&&c.measureText(r+"…").width>w)r=r.slice(0,-1);r+="…";}
+    c.font=k;return r;};
+  c.fillStyle=col_.bg; c.fillRect(0,0,W,tmp.height);
+  c.textBaseline="alphabetic";
+
+  /* 見出しの帯 */
+  c.fillStyle=col_.gov; c.fillRect(0,0,W,120);
+  c.fillStyle="#fff"; c.font=DF(46); c.fillText("みかん振興課",P,74);
+  c.globalAlpha=.85; c.font=BF(22);
+  c.fillText("県農林水産部 果樹振興係／"+CFG.runYears+"年の産地づくり",
+    P+wide("みかん振興課",DF(46))+28,70);
+  c.globalAlpha=1;
+
+  /* 評価 */
+  let y=120;
+  c.fillStyle=col_.bg2; c.fillRect(0,y,W,228);
+  c.fillStyle=col_.accent; c.fillRect(P,y+36,156,156);
+  c.fillStyle="#fff"; c.font=DF(100); c.textAlign="center";
+  c.fillText(d.verdict.rank,P+78,y+148);
+  c.textAlign="left";
+  c.fillStyle=col_.ink; c.font=DF(44);
+  c.fillText(d.verdict.title||"任期を終えました",P+194,y+96);
+  c.fillStyle=col_.ink2; c.font=BF(23);
+  wrapText(c,d.verdict.body,P+194,y+140,inner-194,34,2);
+  y+=228+40;
+
+  /* 主要な数字 */
+  const kpis=[["最終シェア",d.share.toFixed(2),"%"],
+    ["着任時から",(d.share-CFG.startShare*100>=0?"+":"")+(d.share-CFG.startShare*100).toFixed(2),"pt"],
+    ["栽培品種",String(d.count),"品種"],
+    ["県全体の認知",d.pref.toFixed(0),""]];
+  const kw=inner/4;
+  kpis.forEach((k,i)=>{
+    const x=P+kw*i+(i?20:0);
+    if(i){c.strokeStyle=col_.line;c.lineWidth=1;c.beginPath();
+      c.moveTo(P+kw*i,y-8);c.lineTo(P+kw*i,y+76);c.stroke();}
+    c.fillStyle=col_.ink3; c.font=BF(20); c.fillText(k[0],x,y+16);
+    const nf=DF(i===0?54:44);
+    c.fillStyle=(i===0?col_.accent:col_.ink); c.font=nf; c.fillText(k[1],x,y+70);
+    if(k[2]){c.fillStyle=col_.ink3; c.font=BF(20);
+      c.fillText(k[2],x+wide(k[1],nf)+8,y+70);}
+  });
+  y+=76+52;
+
+  /* 見出し */
+  const sec=(t,sub)=>{
+    const tw=wide(t,DF(28));
+    c.fillStyle=col_.ink; c.font=DF(28); c.fillText(t,P,y);
+    if(sub){c.fillStyle=col_.ink3; c.font=BF(19); c.fillText(sub,P+tw+16,y);}
+    c.strokeStyle=col_.ls; c.lineWidth=2; c.beginPath();
+    c.moveTo(P,y+14); c.lineTo(W-P,y+14); c.stroke();
+    y+=48;
+  };
+
+  /* シェアの推移 */
+  sec("シェアの推移","全国の柑橘産出額に占める自県の割合");
+  const gh=250, gw=inner;
+  const rec=d.records.length?d.records:[{year:1,share:CFG.startShare}];
+  const mx=Math.max(CFG.startShare*100,...rec.map(r=>r.share*100))*1.14;
+  c.fillStyle=col_.sunk; c.fillRect(P,y,gw,gh);
+  c.font=BF(17);
+  for(let i=0;i<=4;i++){
+    const v=mx*i/4, yy=y+gh-gh*i/4;
+    c.strokeStyle=col_.line; c.lineWidth=1; c.beginPath(); c.moveTo(P,yy); c.lineTo(P+gw,yy); c.stroke();
+    c.fillStyle=col_.ink3; c.fillText(v.toFixed(0)+"%",P+8,yy-7);
+  }
+  const y0=y+gh-gh*(CFG.startShare*100/mx);
+  c.strokeStyle=col_.ink3; c.setLineDash([6,5]); c.lineWidth=2;
+  c.beginPath(); c.moveTo(P,y0); c.lineTo(P+gw,y0); c.stroke(); c.setLineDash([]);
+  c.fillStyle=col_.ink3; c.font=BF(17); c.textAlign="right";
+  c.fillText("着任時 "+(CFG.startShare*100).toFixed(2)+"%",P+gw-8,y0-8); c.textAlign="left";
+  const px=i=>P+gw*(rec.length>1?i/(rec.length-1):0.5);
+  const py=r=>y+gh-gh*(r.share*100/mx);
+  c.globalAlpha=.16; c.fillStyle=col_.accent; c.beginPath();
+  rec.forEach((r,i)=>{i?c.lineTo(px(i),py(r)):c.moveTo(px(i),py(r));});
+  c.lineTo(px(rec.length-1),y+gh); c.lineTo(px(0),y+gh); c.closePath(); c.fill(); c.globalAlpha=1;
+  c.strokeStyle=col_.accent; c.lineWidth=4; c.lineJoin="round"; c.beginPath();
+  rec.forEach((r,i)=>{i?c.lineTo(px(i),py(r)):c.moveTo(px(i),py(r));}); c.stroke();
+  const last=rec[rec.length-1];
+  c.fillStyle=col_.accent; c.beginPath(); c.arc(px(rec.length-1),py(last),8,0,7); c.fill();
+  c.fillStyle=col_.ink3; c.font=BF(18);
+  c.fillText("1年目",P+4,y+gh+26);
+  c.textAlign="right"; c.fillText(CFG.runYears+"年目",P+gw-4,y+gh+26); c.textAlign="left";
+  y+=gh+84;
+
+  /* 産地の主役 */
+  sec("産地の主役","結果面積 "+ha(d.total)+"ha");
+  const nameW=250, valW=200, barX=P+nameW+18, barW=inner-nameW-18-valW-18;
+  d.areas.forEach(a=>{
+    c.fillStyle=col_.ink; c.font=BF(23);
+    c.fillText(clip(a.n,BF(23),nameW),P,y+22);
+    c.fillStyle=col_.sunk; c.fillRect(barX,y+7,barW,20);
+    c.fillStyle=a.c; c.fillRect(barX,y+7,Math.max(3,barW*a.p/100),20);
+    c.fillStyle=col_.ink2; c.font=BF(20); c.textAlign="right";
+    c.fillText(ha(a.a)+"ha ("+a.p.toFixed(1)+"%)",W-P,y+23); c.textAlign="left";
+    y+=40;
+  });
+  if(!d.areas.length){c.fillStyle=col_.ink3;c.font=BF(22);
+    c.fillText("産地が残りませんでした",P,y+22);y+=40;}
+  y+=44;
+
+  /* 手に入れた品種 */
+  sec("手に入れた品種","育種 "+d.bred.length+"・枝変わり "+d.sports.length+"・導入 "+d.mats.length);
+  [["育種で育成",d.bred,col_.accent],["園地で見つけた枝変わり",d.sports,col_.good],
+   ["よそから導入",d.mats,col_.gov]].forEach(([t,arr,cl])=>{
+    c.fillStyle=cl; c.fillRect(P,y+2,6,22);
+    c.fillStyle=col_.ink3; c.font=BF(20); c.fillText(t,P+18,y+20);
+    c.fillStyle=col_.ink; c.font=BF(23);
+    y=wrapText(c,arr.length?arr.join("・"):"なし",P+18,y+52,inner-18,34,2)+12;
+  });
+
+  /* 脚注 */
+  y+=18;
+  c.fillStyle=col_.ink3; c.font=BF(19);
+  c.fillText("評価は"+CFG.runYears+"年目のシェア。秀56%／優44%／良32%／並"
+    +(CFG.startShare*100).toFixed(1)+"%（着任時）",P,y);
+  y+=44;
+
+  /* 中身の高さに切り詰めて本番のcanvasへ */
+  cv.width=W; cv.height=Math.round(y);
+  const o=cv.getContext("2d");
+  o.fillStyle=col_.bg; o.fillRect(0,0,W,cv.height);
+  o.drawImage(tmp,0,0);
+  return cv;
+}
+function renderResult(){
+  const card=$("result-card"); if(!card) return;
+  card.hidden=!state.over;
+  if(!state.over) return;
+  $("res-sub").textContent=CFG.runYears+"年目・シェア "+(share()*100).toFixed(2)+"%";
+  syncSaveBtn();
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(drawResult);
+  else drawResult();
+}
+/* 公開ページでは保存にdownloads capabilityが要る。使えないなら保存ボタンを隠す */
+let dlCap=null;
+function hosted(){return !!(window.claude&&window.claude.use);}
+function syncSaveBtn(){
+  const b=document.querySelector('[data-act="saveimg"]');
+  if(b) b.hidden=hosted()&&!dlCap;
+}
+function initDownloads(){
+  if(!hosted()) return;
+  syncSaveBtn();
+  try{
+    window.claude.use("downloads").then(d=>{dlCap=d;syncSaveBtn();},()=>syncSaveBtn());
+  }catch(e){syncSaveBtn();}
+}
+function resMsg(t,cls){const el=$("res-msg");if(!el)return;el.textContent=t;el.className="hint"+(cls?" "+cls:"");}
+function resultBlob(){return new Promise(r=>$("res-canvas").toBlob(r,"image/png"));}
+function copyResult(){
+  drawResult();
+  if(!(navigator.clipboard&&window.ClipboardItem)){
+    resMsg("このブラウザではコピーできません。「画像を保存」を使ってください。","ng");return;
+  }
+  try{
+    /* 画像の用意を待つあいだも操作として扱われるよう、Promiseのまま渡す */
+    const item=new ClipboardItem({"image/png":resultBlob()});
+    navigator.clipboard.write([item])
+      .then(()=>resMsg("クリップボードにコピーしました。そのまま貼り付けられます。","ok"))
+      .catch(()=>resultBlob().then(b=>navigator.clipboard.write([new ClipboardItem({"image/png":b})]))
+        .then(()=>resMsg("クリップボードにコピーしました。","ok"))
+        .catch(()=>resMsg("コピーできませんでした。「画像を保存」を使ってください。","ng")));
+  }catch(e){
+    resMsg("コピーできませんでした。「画像を保存」を使ってください。","ng");
+  }
+}
+function saveResult(){
+  drawResult();
+  const name="みかん振興課_"+CFG.runYears+"年の成果_シェア"+(share()*100).toFixed(2)+"%.png";
+  if(dlCap){
+    resultBlob().then(b=>dlCap.save({filename:name,data:b}))
+      .then(()=>resMsg("画像を保存しました。","ok"))
+      .catch(e=>{
+        const c=e&&e.code;
+        if(c==="declined") resMsg("保存をやめました。");
+        else if(c==="rate_limited") resMsg("少し待ってから、もう一度押してください。","ng");
+        else resMsg("保存できませんでした。「画像をコピー」を使ってください。","ng");
+      });
+    return;
+  }
+  if(hosted()){ resMsg("このページでは保存できません。「画像をコピー」を使ってください。","ng"); return; }
+  try{
+    const a=document.createElement("a");
+    a.download=name;
+    a.href=$("res-canvas").toDataURL("image/png");
+    document.body.appendChild(a); a.click(); a.remove();
+    resMsg("画像を保存しました。","ok");
+  }catch(e){ resMsg("保存できませんでした。","ng"); }
+}
 function renderReport(){
   const el=$("report"),r=state.last;
   if(!r){
@@ -1330,7 +1583,7 @@ function readouts(){
 }
 function renderAll(){
   renderHeader();renderComposition();renderVarieties();renderAlloc();
-  renderBreeding();renderReport();renderRecords();renderTabs();readouts();
+  renderBreeding();renderReport();renderRecords();renderTabs();renderResult();readouts();
 }
 let resetArmed=false;
 function bindOnce(){
@@ -1383,6 +1636,8 @@ function bindOnce(){
       const id=act.dataset.id;
       if(V[id]&&V[id].mat&&!state.owned[id]) state.imports.push({id,left:V[id].lead,fresh:true});
     }
+    if(a==="copyimg"){copyResult();return;}
+    if(a==="saveimg"){saveResult();return;}
     save();renderAll();
   });
   $("advance").addEventListener("click",()=>advanceYear());
@@ -1415,7 +1670,7 @@ function boot(data){
   }
   growable().forEach(id=>{if(!state.pipe[id])state.pipe[id]=new Array(CFG.lagYears).fill(0);});
   if(!state.national)state.national=output()/CFG.startShare;
-  bindOnce();renderAll();
+  bindOnce();initDownloads();renderAll();
 }
 const hot=window.claude&&window.claude.hot;
 if(hot&&typeof hot.snapshot==="function"){try{hot.snapshot(()=>({state}));}catch(e){}}
