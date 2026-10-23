@@ -319,7 +319,7 @@ const CFG={
   maxProjects:3, lagYears:5, convertBase:0.060,
   sportBase:0.030
 };
-const GEN=[null,{need:180,years:7},{need:225,years:8},{need:270,years:9}];
+const GEN=[null,{need:180,years:7},{need:225,years:8},{need:270,years:9},{need:320,years:10}];
 /* 育種は場数を踏むほど安くなる。1系統育成するごとに6%、最大45%まで */
 const BRED_DISC=0.06, BRED_FLOOR=0.55;
 function bredDisc(){return Math.max(BRED_FLOOR,1-(state.bredCount||0)*BRED_DISC);}
@@ -377,6 +377,9 @@ const V={
   marcott:{n:"マーコット",k:"マンダリン",s:4,mat:1,grow:1,cost:25,lead:3,orig:"米国育成",
     yld:0.72,price:1.85,req:76,
     note:"米国育成。高糖度で果皮が薄いが、種が多く浮皮も出やすい。"},
+  page:{n:"ページ",k:"タンゴール",s:3,mat:1,grow:1,cost:20,lead:2,orig:"米国育成",
+    yld:0.75,price:1.40,req:72,
+    note:"米国育成のタンゴール。多汁で無核性を伝える。小果で収量は多くない。"},
   ogon:{n:"黄金柑",k:"雑柑",s:4,mat:1,grow:1,cost:15,lead:2,orig:"在来",
     yld:0.55,price:1.80,req:62,
     note:"小果の在来柑橘。さわやかな香りをもち、希少さで高値がつく。"},
@@ -458,16 +461,26 @@ const V={
   haruki:{n:"はるき",k:"タンゴール",s:4,grow:1,gen:2,cross:["kiyomi","ponkan"],
     yld:0.80,price:2.20,req:52,real:"和歌山県果樹試験場・清見×中野3号ポンカン",
     note:"3月に熟す中晩柑。遅くまで樹上に置ける。"},
+  t378:{n:"T-378",k:"育種中間系統",s:3,grow:1,gen:2,cross:["kiyomi","okitsu"],
+    yld:0.70,price:0.55,req:35,real:"（清見×興津早生）の選抜系統",
+    note:"津之香と同じ交配から選ばれた別系統。そのままでは売り物にならないが、"
+      +"天草の母本になった。産地に乗せる品種ではなく、次の交配のための系統。"},
   himekoharu:{n:"媛小春",k:"タンゴール",s:4,grow:1,gen:2,cross:["kiyomi","ogon"],
     yld:0.72,price:1.90,req:48,real:"2008年登録",
     note:"黄金柑ゆずりの香り。小果で収量は多くない。"},
   nijumaru:{n:"にじゅうまる",k:"タンゴール",s:4,grow:1,gen:3,cross:["nishinoka","otapon"],
     yld:0.80,price:3.10,req:58,real:"佐賀果試35号・2017年登録（佐賀県）",
     note:"西之香に太田ポンカンを交配。大玉で、じょうのうごと食べられる。"},
+  amakusa:{n:"天草",k:"タンゴール",s:3,grow:1,gen:3,cross:["t378","page"],
+    yld:0.84,price:2.35,req:55,real:"1982年交雑・1993年農林認定",
+    note:"（清見×興津早生）T-378にページを交雑。果皮が美しい。"},
   hinoyutaka:{n:"肥の豊",k:"タンゴール",s:4,grow:1,gen:3,cross:["shiranui","marcott"],
     yld:0.90,price:2.55,req:52,real:"1989年交配・2003年登録（熊本県）",
     note:"不知火にマーコットを交配した珠心胚実生。樹勢が強く樹冠の拡大が早い。"
-      +"不知火よりクエン酸が少なく、2〜3月に出せる。"}
+      +"不知火よりクエン酸が少なく、2〜3月に出せる。"},
+  benimadonna:{n:"紅まどんな",k:"タンゴール",s:3,grow:1,gen:4,cross:["nanko","amakusa"],
+    yld:0.78,price:4.10,req:75,real:"2005年登録（愛媛県）",
+    note:"南香に天草を交雑。ゼリーのような果肉で、産地の顔になる。"}
 };
 const CKEY=(a,b)=>[a,b].sort().join("|");
 const CROSS={},SPORT={};
