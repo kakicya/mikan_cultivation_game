@@ -355,6 +355,10 @@ const V={
   okitsu:{n:"興津早生",k:"早生温州",s:1,mat:1,grow:1,cost:10,lead:1,orig:"在来",
     yld:1.06,price:0.98,req:28,
     note:"宮川早生の珠心胚実生から選抜された早生温州。多くの枝変わりの母体でもある。"},
+  otapon:{n:"太田ポンカン",k:"中晩柑",s:2,mat:1,grow:1,cost:15,lead:2,orig:"ポンカンの一系統",
+    yld:0.72,price:1.28,req:22,real:"ポンカンの一系統",
+    note:"中野3号とは別系統のポンカン。にじゅうまるの父本になった。"
+      +"ポンカンは系統ごとに子が違うので、別の系統を持つと別の交配が開く。"},
   miho:{n:"三保早生",k:"早生温州",s:1,mat:1,grow:1,cost:10,lead:1,orig:"在来",
     yld:1.00,price:0.96,req:28,
     note:"早生温州のひとつ。南香の母本として知られる。"},
@@ -457,15 +461,13 @@ const V={
   himekoharu:{n:"媛小春",k:"タンゴール",s:4,grow:1,gen:2,cross:["kiyomi","ogon"],
     yld:0.72,price:1.90,req:48,real:"2008年登録",
     note:"黄金柑ゆずりの香り。小果で収量は多くない。"},
-  setoka:{n:"せとか",k:"タンゴール",s:4,grow:1,gen:3,cross:["tenka","marcott"],
-    yld:0.72,price:3.50,req:70,real:"口之津37号×マーコット",
-    note:"とろけるような食感。高単価だが栽培の難度が高い。"},
-  reiko:{n:"麗紅",k:"タンゴール",s:3,grow:1,gen:3,cross:["tenka","marcott"],
-    yld:0.84,price:2.90,req:60,real:"せとかと同じ組合せの別個体",
-    note:"果皮が橙紅色で美しく、外観で売れる。"},
-  tsunokagayaki:{n:"津之輝",k:"タンゴール",s:3,grow:1,gen:3,cross:["tsunoka","encore"],
-    yld:0.92,price:2.40,req:58,real:"1984年交雑・2009年登録",
-    note:"（清見×興津早生）にアンコールを交雑。食味が濃い。"}
+  nijumaru:{n:"にじゅうまる",k:"タンゴール",s:4,grow:1,gen:3,cross:["nishinoka","otapon"],
+    yld:0.80,price:3.10,req:58,real:"佐賀果試35号・2017年登録（佐賀県）",
+    note:"西之香に太田ポンカンを交配。大玉で、じょうのうごと食べられる。"},
+  hinoyutaka:{n:"肥の豊",k:"タンゴール",s:4,grow:1,gen:3,cross:["shiranui","marcott"],
+    yld:0.90,price:2.55,req:52,real:"1989年交配・2003年登録（熊本県）",
+    note:"不知火にマーコットを交配した珠心胚実生。樹勢が強く樹冠の拡大が早い。"
+      +"不知火よりクエン酸が少なく、2〜3月に出せる。"}
 };
 const CKEY=(a,b)=>[a,b].sort().join("|");
 const CROSS={},SPORT={};
