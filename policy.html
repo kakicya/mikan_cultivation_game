@@ -230,7 +230,10 @@ tbody tr:last-child td{border-bottom:0}
   padding-top:5px;border-top:1px dotted var(--line)}
 .vfoot span{font-variant-numeric:tabular-nums}
 .pipe{font-size:.66rem;color:var(--accent)}
-#tabbar .seg{grid-template-columns:repeat(4,1fr)}
+#tabbar .seg{grid-template-columns:repeat(5,1fr)}
+.steps{margin:0;padding-left:1.45em;font-size:.82rem;color:var(--ink-2)}
+.steps li{margin:5px 0}
+.steps b{color:var(--ink);font-weight:700}
 .hint-tbl td.q{color:var(--ink-3)}
 .hint-tbl td.ok{color:var(--accent)}
 .hint-tbl tr.dim{opacity:.55}
@@ -262,6 +265,12 @@ tbody tr:last-child td{border-bottom:0}
 <main>
   <div class="cols">
     <section>
+      <div class="card" id="play-card" hidden>
+        <div class="chead"><h2>遊び方</h2><p class="sub">50年で全国シェアを伸ばす</p></div>
+        <div id="play"></div>
+        <button class="btn" style="margin-top:9px" data-act="playclose">とじる</button>
+      </div>
+
       <div class="card">
         <div class="chead"><h2>品種と産地</h2>
           <span style="display:flex;align-items:baseline;gap:9px">
@@ -1092,20 +1101,22 @@ function arrow(a,b,d){
   if(Math.abs(v)<0.005) return '<span class="quiet">±0</span>';
   return '<span class="'+(v<0?"neg":"")+'">'+(v>0?"+":"")+v.toFixed(d||1)+'</span>';
 }
-const TABS=[["howto","仕組み"],["cross","交配"],["sport","枝変わり"],["import","遺伝資源"]];
-const TABSUB={howto:"50年の産地づくり",cross:"いま持っている品種の組合せでしか交配できない",
+const TABS=[["play","遊び方"],["howto","仕組み"],["cross","交配"],
+  ["sport","枝変わり"],["import","遺伝資源"]];
+const TABSUB={play:"5分で分かる進め方",howto:"50年の産地づくり",cross:"いま持っている品種の組合せでしか交配できない",
   sport:"園地の面積と栽培技術が、偶然を引き寄せる",
   import:"交配の親にも、そのまま栽培にも使える"};
 function renderTabs(){
   const t=state.tab||"howto", open=!!state.guideOpen;
   $("guide-toggle").setAttribute("aria-expanded",open?"true":"false");
   $("guide-body").hidden=!open;
-  if(!open){$("tab-sub").textContent="仕組み・交配・枝変わり・遺伝資源";return;}
+  if(!open){$("tab-sub").textContent="遊び方・仕組み・交配・枝変わり・遺伝資源";return;}
   $("tab-sub").textContent=TABSUB[t]||"";
   $("tabbar").innerHTML='<div class="seg">'+TABS.map(([k,l])=>
     '<button type="button" data-tab="'+k+'" aria-pressed="'+(t===k?'true':'false')+'">'
     +l+'</button>').join("")+'</div>';
-  if(t==="cross") renderCrossHints();
+  if(t==="play") $("howto").innerHTML=playHTML();
+  else if(t==="cross") renderCrossHints();
   else if(t==="sport") renderSportHints();
   else if(t==="import") renderImports();
   else renderHowto();
@@ -1164,6 +1175,29 @@ function renderSportHints(){
     +'</tbody></table></div>'
     +'<p class="hint">確率はその年のものです。面積が大きいほど、また技術が高いほど上がります。'
     +'残っている系統のどれが見つかるかは分かりません。</p>';
+}
+/* できるだけ短い遊び方。手引きの「遊び方」タブと、最初に出るカードで使う */
+function playHTML(){
+  return '<ol class="steps">'
+    +'<li><b>品種に予算を配る</b>（「品種と産地」のスライダー）。注ぎ込むほど<b>栽培技術</b>が上がり、'
+      +'必要技術の6割を超えると産地が植え始めます。育ったら<b>消費者認知</b>に回り、単価が上がります。</li>'
+    +'<li><b>遺伝資源を導入する</b>（手引きの「遺伝資源」）。交配の親になり、そのまま栽培もできます。</li>'
+    +'<li><b>育種する</b>（「育種事業」）。両方の親を持っている組合せだけ始められます。'
+      +'何が生まれるかは成功するまで分かりません。</li>'
+    +'<li><b>枝変わりを待つ</b>。主力の面積が広いほど、園地で偶然見つかります。予算はかかりません。</li>'
+    +'<li><b>「○年目を終える」</b>を押して次の年へ。予算は繰り越せません。</li>'
+    +'</ol>'
+    +'<div class="notice warn">古い品種は毎年1.8%ずつ値を下げます。'
+      +'<b>更新を止めるとシェアは落ちます。</b>自分で育てた品種だけは10年間値崩れしません。</div>'
+    +'<div class="notice good"><b>最初の一手</b>：「遺伝資源」から<b>トロビタオレンジ</b>を導入し、'
+      +'宮川早生と交配して<b>清見</b>を育てる。ここからほとんどの品種が派生します。</div>'
+    +'<p class="hint">'+CFG.runYears+'年目の全国シェアで評価されます。着任時は'
+      +(CFG.startShare*100).toFixed(2)+'%。くわしくは「仕組み」へ。</p>';
+}
+function renderPlayCard(){
+  const c=$("play-card"); if(!c) return;
+  c.hidden=!!state.playSeen||!!state.over;
+  if(!c.hidden) $("play").innerHTML=playHTML();
 }
 function renderHowto(){
   $("howto").innerHTML='<p class="quiet">あなたは県の果樹振興係です。50年かけて、自県の柑橘を'
@@ -1583,7 +1617,8 @@ function readouts(){
 }
 function renderAll(){
   renderHeader();renderComposition();renderVarieties();renderAlloc();
-  renderBreeding();renderReport();renderRecords();renderTabs();renderResult();readouts();
+  renderBreeding();renderReport();renderRecords();renderTabs();
+  renderPlayCard();renderResult();readouts();
 }
 let resetArmed=false;
 function bindOnce(){
@@ -1636,6 +1671,7 @@ function bindOnce(){
       const id=act.dataset.id;
       if(V[id]&&V[id].mat&&!state.owned[id]) state.imports.push({id,left:V[id].lead,fresh:true});
     }
+    if(a==="playclose"){state.playSeen=1;save();renderAll();return;}
     if(a==="copyimg"){copyResult();return;}
     if(a==="saveimg"){saveResult();return;}
     save();renderAll();
@@ -1654,7 +1690,7 @@ function boot(data){
   const s=(data&&data.state)||load();
   if(s)state=s; else newState();
   if(!state.pick)state.pick={a:"",b:""};
-  if(!state.tab)state.tab="howto";
+  if(!state.tab)state.tab="play";
   if(!state.slots)state.slots={};
   if(!state.pmul)state.pmul={};
   if(!state.born)state.born={};
